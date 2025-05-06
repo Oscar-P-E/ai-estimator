@@ -23,7 +23,8 @@ export default function Home() {
             </h1>
           </div>
           <p className="mt-2 text-lg text-gray-600 dark:text-gray-300 text-center max-w-xl">
-            Get instant, accurate quotes by chatting or speaking with our AI. Upload your pricing document and let the assistant do the rest!
+            <span className="font-semibold">For business owners:</span> Log in, upload your pricing documents, and get a unique public chat page for your clients.<br />
+            <span className="font-semibold">For clients:</span> Visit your business's chat page and get instant, AI-powered quotes based on real pricing data.
           </p>
         </header>
         <div className="flex-1 flex flex-col min-h-[500px]">
