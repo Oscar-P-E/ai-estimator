@@ -3,9 +3,9 @@ import ChatInterfaceClient from './components/ChatInterfaceClient';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex flex-col items-center justify-center">
-      <div className="w-full max-w-3xl mx-auto my-8 p-0 sm:p-8 rounded-3xl shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-800">
-        <header className="flex flex-col items-center mb-6">
+    <main className="flex-1 bg-gradient-to-br from-blue-100 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex">
+      <div className="w-full max-w-3xl mx-auto my-4 sm:my-6 p-4 sm:p-6 rounded-3xl shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-800 flex flex-col flex-1">
+        <header className="flex flex-col items-center mb-6 flex-shrink-0">
           <div className="flex items-center gap-3 mt-6">
             <span className="inline-block bg-gradient-to-tr from-blue-400 to-purple-500 rounded-full p-2 shadow-lg">
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -27,7 +27,7 @@ export default function Home() {
             <span className="font-semibold">For clients:</span> Visit your business's chat page and get instant, AI-powered quotes based on real pricing data.
           </p>
         </header>
-        <div className="flex-1 flex flex-col min-h-[500px]">
+        <div className="flex-1 flex flex-col min-h-0">
           <ChatInterfaceClient />
         </div>
       </div>
