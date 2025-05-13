@@ -10,12 +10,17 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.18.5",
+    "@deepgram/sdk": "^4.1.0",
+    "@react-three/drei": "^10.0.7",
+    "@react-three/fiber": "^9.1.2",
     "@types/react-speech-recognition": "^3.9.6",
     "@types/xlsx": "^0.0.35",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-speech-recognition": "^4.0.1",
+    "three": "^0.176.0",
+    "ws": "^8.18.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

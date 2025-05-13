@@ -8,6 +8,23 @@ interface Message {
   content: string;
 }
 
+// Helper to generate a morphing blob path
+function generateBlobPath(centerX: number, centerY: number, baseRadius: number, points: number, audioLevel: number, t: number) {
+  const step = (Math.PI * 2) / points;
+  let d = '';
+  for (let i = 0; i < points; i++) {
+    const angle = i * step;
+    // Use sine waves for organic movement
+    const amp = baseRadius * (0.15 + audioLevel * 1.2) * Math.sin(t + i * 0.7 + Math.sin(t + i));
+    const r = baseRadius + amp;
+    const x = centerX + Math.cos(angle) * r;
+    const y = centerY + Math.sin(angle) * r;
+    d += i === 0 ? `M${x},${y}` : ` Q${centerX + Math.cos(angle - step / 2) * r},${centerY + Math.sin(angle - step / 2) * r} ${x},${y}`;
+  }
+  d += ' Z';
+  return d;
+}
+
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -15,7 +32,15 @@ export default function ChatInterface() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [transcriptionMessage, setTranscriptionMessage] = useState('');
+  const [showBlob, setShowBlob] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0); // for blob animation
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  // Animated blob state
+  const [blobTime, setBlobTime] = useState(0);
+  const blobAnimationRef = useRef<number | null>(null);
 
   const {
     transcript,
@@ -47,6 +72,25 @@ export default function ChatInterface() {
     console.log('Browser supports speech recognition:', browserSupportsSpeechRecognition);
   }, [browserSupportsSpeechRecognition]);
 
+  useEffect(() => {
+    setTranscriptionMessage('');
+  }, [input, isRecording]);
+
+  // Animate the blob time for morphing
+  useEffect(() => {
+    if (!showBlob) return;
+    let running = true;
+    const animate = () => {
+      setBlobTime((t) => t + 0.04);
+      if (running) blobAnimationRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => {
+      running = false;
+      if (blobAnimationRef.current) cancelAnimationFrame(blobAnimationRef.current);
+    };
+  }, [showBlob]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -58,7 +102,7 @@ export default function ChatInterface() {
     resetTranscript();
 
     try {
-      // Here you would integrate with your AI service
+      // TODO: integrate with AI service
       // For now, we'll just echo back the message
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -98,28 +142,88 @@ export default function ChatInterface() {
 
   // Audio recording handlers
   const startRecording = async () => {
-    setAudioChunks([]);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      setShowBlob(true);
+      // Set up Web Audio API for volume detection
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioCtx();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      // Animate blob based on volume
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const animate = () => {
+        analyser.getByteTimeDomainData(dataArray);
+        // Calculate RMS (root mean square) for volume
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const val = (dataArray[i] - 128) / 128;
+          sum += val * val;
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        setAudioLevel(rms);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      };
+      animate();
+      // MediaRecorder logic
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
       setMediaRecorder(recorder);
+      let localAudioChunks: Blob[] = [];
       recorder.start();
       setIsRecording(true);
       recorder.ondataavailable = (e) => {
-        setAudioChunks((prev) => [...prev, e.data]);
+        localAudioChunks.push(e.data);
       };
       recorder.onstop = async () => {
         setIsRecording(false);
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
-        const res = await fetch('/api/transcribe', {
-          method: 'POST',
-          body: formData,
+        setShowBlob(false);
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        if (audioContext) audioContext.close();
+        console.log('Recording stopped, audio chunks:', localAudioChunks.length);
+        const audioBlob = new Blob(localAudioChunks, { type: 'audio/webm' });
+        console.log('Created audio blob:', {
+          size: audioBlob.size,
+          type: audioBlob.type
         });
-        const data = await res.json();
-        if (data.transcript) {
-          setInput(data.transcript);
+        // If the audio is too short or empty, do not send
+        if (audioBlob.size < 1024) { // 1KB threshold
+          console.warn('Recording too short or empty, not sending for transcription.');
+          setTranscriptionMessage('Recording was too short. Please try speaking for a bit longer.');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'recording.webm');
+        try {
+          console.log('Sending audio for transcription...');
+          const res = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+          console.log('Transcription response status:', res.status);
+          const data = await res.json();
+          console.log('Transcription response:', data);
+          if (data.transcription) {
+            setInput(data.transcription);
+            setTranscriptionMessage('');
+          } else if (data.error) {
+            if (
+              data.error === 'No transcription generated' ||
+              (data.details && data.details.includes('no transcript'))
+            ) {
+              setTranscriptionMessage('No speech detected. Please try speaking more clearly or for a bit longer.');
+            } else {
+              console.error('Transcription error:', data.error, data.details || '');
+              setTranscriptionMessage(`Failed to transcribe audio: ${data.error}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error sending audio for transcription:', error);
+          setTranscriptionMessage('Failed to send audio for transcription. Please try again.');
         }
       };
     } catch (err) {
@@ -159,13 +263,41 @@ export default function ChatInterface() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2 items-center bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg px-2 py-2 border border-gray-200 dark:border-gray-700">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="flex-1 p-3 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all"
-          placeholder="Type or speak…"
-        />
+        {showBlob ? (
+          <div className="flex-1 flex items-center justify-center min-h-[56px]">
+            {/* Advanced animated blob SVG */}
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <defs>
+                <radialGradient id="metallic" cx="50%" cy="50%" r="70%">
+                  <stop offset="0%" stopColor="#e0e7ef" />
+                  <stop offset="60%" stopColor="#6366f1" />
+                  <stop offset="100%" stopColor="#18181b" />
+                </radialGradient>
+                <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <path
+                d={generateBlobPath(60, 60, 38, 12, audioLevel, blobTime)}
+                fill="url(#metallic)"
+                filter="url(#glow)"
+                opacity={0.95}
+              />
+            </svg>
+          </div>
+        ) : (
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="flex-1 p-3 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all"
+            placeholder="Type or speak…"
+          />
+        )}
         <button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
@@ -197,6 +329,11 @@ export default function ChatInterface() {
           <span className="font-semibold">Send</span>
         </button>
       </form>
+      {transcriptionMessage && (
+        <div className="mt-2 text-sm text-red-600 dark:text-red-400 text-center animate-fade-in">
+          {transcriptionMessage}
+        </div>
+      )}
       <style jsx global>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(10px); }
