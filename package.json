@@ -21,7 +21,8 @@
     "react-speech-recognition": "^4.0.1",
     "three": "^0.176.0",
     "ws": "^8.18.2",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "react-textarea-autosize": "^8.5.9"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

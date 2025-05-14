@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import TextareaAutosize from 'react-textarea-autosize';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -53,19 +54,11 @@ export default function ChatInterface() {
     browserSupportsSpeechRecognition
   } = useSpeechRecognition();
 
-  // Helper function to resize textarea
-  const resizeTextarea = (el: HTMLTextAreaElement) => {
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-  };
-
   // Callback ref for textarea to focus when mounted after transcription
   const textareaCallbackRef = (el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
     if (el && justTranscribed) {
       // First resize the textarea
-      resizeTextarea(el);
-      // Then focus and scroll to end
       el.focus();
       el.selectionStart = el.selectionEnd = el.value.length;
       // Ensure cursor is visible by scrolling textarea to end
@@ -73,13 +66,6 @@ export default function ChatInterface() {
       setJustTranscribed(false);
     }
   };
-
-  // Effect to handle textarea resize when input changes programmatically
-  useEffect(() => {
-    if (textareaRef.current && input) {
-      resizeTextarea(textareaRef.current);
-    }
-  }, [input]);
 
   useEffect(() => {
     setMounted(true);
@@ -330,7 +316,7 @@ export default function ChatInterface() {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 items-center bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg px-2 py-2 border border-gray-200 dark:border-gray-700">
+      <form onSubmit={handleSubmit} className="flex gap-2 items-end bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg px-2 py-2 border border-gray-200 dark:border-gray-700">
         {showBlob ? (
           <div className="flex-1 flex flex-col items-center justify-center min-h-[56px] relative">
             {/* Advanced animated blob SVG */}
@@ -363,17 +349,14 @@ export default function ChatInterface() {
             )}
           </div>
         ) : (
-          <textarea
+          <TextareaAutosize
             ref={textareaCallbackRef}
             value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              resizeTextarea(e.target);
-            }}
-            rows={1}
+            onChange={(e) => setInput(e.target.value)}
+            minRows={1}
+            maxRows={6}
             className="flex-1 resize-none p-3 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all shadow-inner min-h-[44px] max-h-[160px] text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
             placeholder="Type or speak…"
-            style={{ minHeight: 44, maxHeight: 160 }}
           />
         )}
         <button
