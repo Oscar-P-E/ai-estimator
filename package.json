@@ -15,14 +15,15 @@
     "@react-three/fiber": "^9.1.2",
     "@types/react-speech-recognition": "^3.9.6",
     "@types/xlsx": "^0.0.35",
+    "lottie-react": "^2.4.1",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-speech-recognition": "^4.0.1",
+    "react-textarea-autosize": "^8.5.9",
     "three": "^0.176.0",
     "ws": "^8.18.2",
-    "xlsx": "^0.18.5",
-    "react-textarea-autosize": "^8.5.9"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
