@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import TextareaAutosize from 'react-textarea-autosize';
+import LottieBlob from './LottieBlob';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -111,7 +112,7 @@ export default function ChatInterface() {
   }, [showBlob]);
 
   // Cleanup function for audio resources
-  const cleanupAudioResources = () => {
+  const cleanupAudioResources = (keepAnalyzer = false) => {
     // Stop media recorder
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
@@ -123,25 +124,30 @@ export default function ChatInterface() {
     }
     
     // Stop and cleanup audio stream tracks
-    if (audioStream) {
+    if (audioStream && !keepAnalyzer) {
       audioStream.getTracks().forEach(track => track.stop());
       setAudioStream(null);
     }
 
-    // Cancel animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
+    // Cancel animation frame and disconnect analyzer only if not keeping it
+    if (!keepAnalyzer) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
 
-    // Close audio context
-    if (analyserRef.current) {
-      analyserRef.current.disconnect();
+      if (analyserRef.current) {
+        analyserRef.current.disconnect();
+      }
+      
+      setAudioLevel(0);
     }
 
     setIsRecording(false);
-    setShowBlob(false);
-    setAudioLevel(0);
+    // Only hide blob when not transcribing
+    if (!isTranscribing) {
+      setShowBlob(false);
+    }
   };
 
   // Cleanup on unmount
@@ -236,13 +242,12 @@ export default function ChatInterface() {
       };
 
       recorder.onstop = async () => {
-        cleanupAudioResources();
-        setIsTranscribing(true);
-        
         const audioBlob = new Blob(localAudioChunks, { type: 'audio/webm' });
         if (audioBlob.size < 1024) {
           setTranscriptionMessage('Recording was too short. Please try speaking for a bit longer.');
           setIsTranscribing(false);
+          cleanupAudioResources();
+          setShowBlob(false);
           return;
         }
 
@@ -268,10 +273,15 @@ export default function ChatInterface() {
               setTranscriptionMessage(`Failed to transcribe audio: ${data.error}`);
             }
           }
+          // Only cleanup resources after transcription is complete
+          cleanupAudioResources();
+          setShowBlob(false);
         } catch (error) {
           console.error('Error sending audio for transcription:', error);
           setTranscriptionMessage('Failed to send audio for transcription. Please try again.');
           setIsTranscribing(false);
+          cleanupAudioResources();
+          setShowBlob(false);
         }
       };
 
@@ -287,7 +297,8 @@ export default function ChatInterface() {
     if (mediaRecorder && mediaRecorder.state === 'recording') {
       setIsTranscribing(true);
       mediaRecorder.stop();
-      cleanupAudioResources();
+      // Keep the analyzer running while transcribing
+      cleanupAudioResources(true);
     }
   };
 
@@ -296,7 +307,19 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col flex-1 max-w-2xl mx-auto p-2 sm:p-4">
+    <div className="flex flex-col flex-1 max-w-2xl mx-auto p-2 sm:p-4 relative">
+      {showBlob && (
+        <div className="fixed bottom-[20%] left-1/2 transform -translate-x-1/2 z-10 transition-all duration-500 ease-in-out">
+          <div className={`transition-all duration-300 ${isTranscribing ? 'scale-110' : ''}`}>
+            <LottieBlob audioLevel={audioLevel} />
+            {isTranscribing && (
+              <div className="absolute left-1/2 transform -translate-x-1/2 mt-4 text-base text-gray-700 dark:text-gray-200 font-medium animate-pulse">
+                Thinking...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto mb-4 space-y-4 px-1 sm:px-2 transition-all duration-300">
         {messages.map((message, index) => (
           <div
@@ -317,48 +340,15 @@ export default function ChatInterface() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2 items-end bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg px-2 py-2 border border-gray-200 dark:border-gray-700">
-        {showBlob ? (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[56px] relative">
-            {/* Advanced animated blob SVG */}
-            <svg width="120" height="120" viewBox="0 0 120 120">
-              <defs>
-                <radialGradient id="metallic" cx="50%" cy="50%" r="70%">
-                  <stop offset="0%" stopColor="#e0e7ef" />
-                  <stop offset="60%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#18181b" />
-                </radialGradient>
-                <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-                  <feGaussianBlur stdDeviation="6" result="coloredBlur" />
-                  <feMerge>
-                    <feMergeNode in="coloredBlur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              <path
-                d={generateBlobPath(60, 60, 38, 12, audioLevel, blobTime)}
-                fill="url(#metallic)"
-                filter="url(#glow)"
-                opacity={0.95}
-              />
-            </svg>
-            {isTranscribing && (
-              <div className="absolute bottom-[-24px] text-base text-gray-700 dark:text-gray-200 font-medium animate-pulse">
-                Thinking...
-              </div>
-            )}
-          </div>
-        ) : (
-          <TextareaAutosize
-            ref={textareaCallbackRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            minRows={1}
-            maxRows={6}
-            className="flex-1 resize-none p-3 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all shadow-inner min-h-[44px] max-h-[160px] text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
-            placeholder="Type or speak…"
-          />
-        )}
+        <TextareaAutosize
+          ref={textareaCallbackRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          minRows={1}
+          maxRows={6}
+          className="flex-1 resize-none p-3 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all shadow-inner min-h-[44px] max-h-[160px] text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
+          placeholder="Type or speak…"
+        />
         <button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
