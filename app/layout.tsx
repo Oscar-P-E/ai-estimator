@@ -32,7 +32,7 @@ export default function RootLayout({
         >
           <nav className="w-full flex items-center justify-end px-6 py-3 bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-800 shadow-sm">
             <SignedIn>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </SignedIn>
             <SignedOut>
               <SignInButton />
