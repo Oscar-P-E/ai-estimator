@@ -18,6 +18,9 @@ export class ExcelProcessor {
 
   async processExcelFile(filePath: string): Promise<PricingData[]> {
     try {
+      // Reset pricing data for fresh processing
+      this.pricingData = [];
+      
       const fileBuffer = await readFile(filePath);
       const workbook: XLSX.WorkBook = XLSX.read(fileBuffer);
       
@@ -30,7 +33,7 @@ export class ExcelProcessor {
 
       return this.pricingData;
     } catch (error) {
-      console.error('Error processing Excel file:', error);
+      console.error(`Error processing file ${filePath}:`, error);
       throw error;
     }
   }

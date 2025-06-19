@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0",
     "@clerk/nextjs": "^6.18.5",
     "@deepgram/sdk": "^4.1.0",
     "@react-three/drei": "^10.0.7",

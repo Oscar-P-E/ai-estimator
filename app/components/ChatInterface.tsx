@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import TextareaAutosize from 'react-textarea-autosize';
 import LottieBlob from './LottieBlob';
@@ -28,6 +29,7 @@ function generateBlobPath(centerX: number, centerY: number, baseRadius: number, 
 }
 
 export default function ChatInterface() {
+  const pathname = usePathname();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -38,6 +40,7 @@ export default function ChatInterface() {
   const [transcriptionMessage, setTranscriptionMessage] = useState('');
   const [showBlob, setShowBlob] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0); // for blob animation
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -47,6 +50,9 @@ export default function ChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [justTranscribed, setJustTranscribed] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Extract businessId from pathname
+  const businessId = pathname?.startsWith('/business/') ? pathname.split('/')[2] : undefined;
 
   const {
     transcript,
@@ -159,24 +165,32 @@ export default function ChatInterface() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
+    const userInput = input;
     // Add user message
-    const userMessage: Message = { role: 'user', content: input };
+    const userMessage: Message = { role: 'user', content: userInput };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     resetTranscript();
+    setIsLoading(true);
 
     try {
-      // TODO: integrate with AI service
-      // For now, we'll just echo back the message
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input })
+        body: JSON.stringify({ 
+          message: userInput,
+          businessId: businessId
+        })
       });
 
       const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       const assistantMessage: Message = { 
         role: 'assistant', 
         content: data.response || 'I apologize, but I encountered an error.'
@@ -186,9 +200,11 @@ export default function ChatInterface() {
       console.error('Error sending message:', error);
       const errorMessage: Message = { 
         role: 'assistant', 
-        content: 'I apologize, but I encountered an error processing your request.'
+        content: 'I apologize, but I encountered an error processing your request. Please try again.'
       };
       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -336,6 +352,18 @@ export default function ChatInterface() {
             {message.content}
           </div>
         ))}
+        {isLoading && (
+          <div className="max-w-[80%] sm:max-w-[70%] p-4 rounded-2xl shadow-md transition-all duration-300 bg-gray-100 dark:bg-gray-800 dark:text-gray-100 text-gray-800 rounded-bl-md border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+              <span className="text-sm text-gray-500">AI is thinking...</span>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
