@@ -11,6 +11,7 @@ const anthropic = new Anthropic({
 interface ChatMessage {
   message: string;
   businessId?: string;
+  isVoiceInput?: boolean;
 }
 
 async function getBusinessPricingData(businessId?: string) {
@@ -104,7 +105,7 @@ Respond helpfully and professionally. If this is their first message, welcome th
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, businessId }: ChatMessage = await request.json();
+    const { message, businessId, isVoiceInput }: ChatMessage = await request.json();
     
     if (!message) {
       return NextResponse.json(
@@ -119,8 +120,29 @@ export async function POST(request: NextRequest) {
     // Generate response using Claude
     const response = await generateQuoteWithClaude(message, pricingData);
 
+    // Generate TTS response if this was a voice input
+    let audioResponse = null;
+    if (isVoiceInput && process.env.ELEVENLABS_API_KEY) {
+      try {
+        const ttsResponse = await fetch(`${request.nextUrl.origin}/api/text-to-speech`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: response })
+        });
+        
+        if (ttsResponse.ok) {
+          const ttsData = await ttsResponse.json();
+          audioResponse = ttsData.audio;
+        }
+      } catch (ttsError) {
+        console.error('TTS generation failed:', ttsError);
+        // Continue without audio - don't fail the whole request
+      }
+    }
+
     return NextResponse.json({ 
       response,
+      audioResponse,
       pricingDataCount: pricingData.length 
     });
 

@@ -31,6 +31,7 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 | **Authentication** | Clerk |
 | **AI/LLM** | Claude 3.5 Sonnet (Anthropic) |
 | **Speech-to-Text** | Deepgram |
+| **Text-to-Speech** | ElevenLabs |
 | **Document Processing** | XLSX, planned: multi-format AI analysis |
 | **Database** | Planned: PostgreSQL with Prisma |
 | **Deployment** | Vercel |
@@ -42,12 +43,44 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 - Document upload and processing (Excel/CSV)
 - AI-powered quote generation
 - Voice input with speech-to-text
+- **NEW: Voice responses with text-to-speech**
 - Business-specific chat pages
 
 **In Development:**
-- Text-to-speech responses
 - Enhanced document processing
 - Embeddable widget system
+- Multi-business support with database
+
+## 🚀 Quick Start
+
+1. **Clone and install:**
+   ```bash
+   git clone <repo>
+   cd estimator
+   pnpm install
+   ```
+
+2. **Set up environment variables:**
+   Create `.env.local` with:
+   ```env
+   # Clerk Authentication
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+   CLERK_SECRET_KEY=sk_test_...
+   
+   # Anthropic Claude API
+   ANTHROPIC_API_KEY=sk-ant-...
+   
+   # Deepgram Speech-to-Text
+   DEEPGRAM_API_KEY=...
+   
+   # ElevenLabs Text-to-Speech
+   ELEVENLABS_API_KEY=...
+   ```
+
+3. **Run development server:**
+   ```bash
+   pnpm dev
+   ```
 
 ## 📚 Documentation
 

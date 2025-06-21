@@ -2,11 +2,11 @@ import ChatInterfaceClient from '../../components/ChatInterfaceClient';
 import { notFound } from 'next/navigation';
 
 interface BusinessPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default function BusinessChatPage({ params }: BusinessPageProps) {
-  const { slug } = params;
+export default async function BusinessChatPage({ params }: BusinessPageProps) {
+  const { slug } = await params;
 
   // In a real app, you'd fetch business info by slug here
   if (!slug) return notFound();
@@ -19,7 +19,7 @@ export default function BusinessChatPage({ params }: BusinessPageProps) {
             Chat with {slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
           </h2>
           <p className="mt-2 text-lg text-gray-600 dark:text-gray-300 text-center max-w-xl">
-            Welcome! This AI assistant will use this business's uploaded pricing documents to ask you questions and generate a personalized quote. Just describe what you need, and the AI will guide you.
+            Welcome! This AI assistant will use this business&apos;s uploaded pricing documents to ask you questions and generate a personalized quote. Just describe what you need, and the AI will guide you.
           </p>
         </header>
         <div className="flex-1 flex flex-col min-h-0">

@@ -11,22 +11,7 @@ interface Message {
   content: string;
 }
 
-// Helper to generate a morphing blob path
-function generateBlobPath(centerX: number, centerY: number, baseRadius: number, points: number, audioLevel: number, t: number) {
-  const step = (Math.PI * 2) / points;
-  let d = '';
-  for (let i = 0; i < points; i++) {
-    const angle = i * step;
-    // Use sine waves for organic movement
-    const amp = baseRadius * (0.15 + audioLevel * 1.2) * Math.sin(t + i * 0.7 + Math.sin(t + i));
-    const r = baseRadius + amp;
-    const x = centerX + Math.cos(angle) * r;
-    const y = centerY + Math.sin(angle) * r;
-    d += i === 0 ? `M${x},${y}` : ` Q${centerX + Math.cos(angle - step / 2) * r},${centerY + Math.sin(angle - step / 2) * r} ${x},${y}`;
-  }
-  d += ' Z';
-  return d;
-}
+
 
 export default function ChatInterface() {
   const pathname = usePathname();
@@ -35,18 +20,14 @@ export default function ChatInterface() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-  const [mounted, setMounted] = useState(false);
   const [transcriptionMessage, setTranscriptionMessage] = useState('');
   const [showBlob, setShowBlob] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0); // for blob animation
   const [isLoading, setIsLoading] = useState(false);
+  const [usedVoiceInput, setUsedVoiceInput] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  // Animated blob state
-  const [blobTime, setBlobTime] = useState(0);
-  const blobAnimationRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [justTranscribed, setJustTranscribed] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -74,15 +55,14 @@ export default function ChatInterface() {
     }
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+
 
   useEffect(() => {
     console.log('Transcript:', transcript);
     if (transcript) {
       setInput(transcript);
       setJustTranscribed(true);
+      setUsedVoiceInput(true);
     }
   }, [transcript]);
 
@@ -102,20 +82,30 @@ export default function ChatInterface() {
     setTranscriptionMessage('');
   }, [input, isRecording]);
 
-  // Animate the blob time for morphing
-  useEffect(() => {
-    if (!showBlob) return;
-    let running = true;
-    const animate = () => {
-      setBlobTime((t) => t + 0.04);
-      if (running) blobAnimationRef.current = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => {
-      running = false;
-      if (blobAnimationRef.current) cancelAnimationFrame(blobAnimationRef.current);
-    };
-  }, [showBlob]);
+  // Function to play audio response
+  const playAudioResponse = (audioBase64: string) => {
+    try {
+      const audioBlob = new Blob([Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      // Handle both Promise and non-Promise returns from play()
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(err => {
+          console.error('Error playing audio:', err);
+        });
+      }
+    } catch (error) {
+      console.error('Error creating audio from base64:', error);
+    }
+  };
+
+
 
   // Cleanup function for audio resources
   const cleanupAudioResources = (keepAnalyzer = false) => {
@@ -163,16 +153,16 @@ export default function ChatInterface() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
+  // Shared function to send message (used by both form submit and auto-send)
+  const sendMessage = async (messageText: string, wasVoiceInput: boolean) => {
+    if (!messageText.trim() || isLoading) return;
 
-    const userInput = input;
     // Add user message
-    const userMessage: Message = { role: 'user', content: userInput };
+    const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     resetTranscript();
+    setUsedVoiceInput(false);
     setIsLoading(true);
 
     try {
@@ -180,8 +170,9 @@ export default function ChatInterface() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: userInput,
-          businessId: businessId
+          message: messageText,
+          businessId: businessId,
+          isVoiceInput: wasVoiceInput
         })
       });
 
@@ -196,6 +187,12 @@ export default function ChatInterface() {
         content: data.response || 'I apologize, but I encountered an error.'
       };
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Play audio response if available and user used voice input
+      if (data.audioResponse && wasVoiceInput) {
+        console.log('Playing TTS audio response...');
+        playAudioResponse(data.audioResponse);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: Message = { 
@@ -206,6 +203,21 @@ export default function ChatInterface() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    // Stop recording if it's still active
+    if (isRecording) {
+      stopRecording();
+    }
+
+    const userInput = input;
+    const wasVoiceInput = usedVoiceInput;
+    
+    await sendMessage(userInput, wasVoiceInput);
   };
 
   const startRecording = async () => {
@@ -220,7 +232,7 @@ export default function ChatInterface() {
       setIsRecording(true);
 
       // Set up Web Audio API for volume detection
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const audioContext = new AudioCtx();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
@@ -251,7 +263,7 @@ export default function ChatInterface() {
         mimeType: 'audio/webm;codecs=opus'
       });
       setMediaRecorder(recorder);
-      let localAudioChunks: Blob[] = [];
+      const localAudioChunks: Blob[] = [];
       
       recorder.ondataavailable = (e) => {
         localAudioChunks.push(e.data);
@@ -280,7 +292,13 @@ export default function ChatInterface() {
           setIsTranscribing(false);
           if (data.transcription) {
             setInput(data.transcription);
+            setUsedVoiceInput(true);
             setTranscriptionMessage('');
+            
+            // Auto-send the message immediately after transcription
+            cleanupAudioResources();
+            setShowBlob(false);
+            await sendMessage(data.transcription, true);
           } else if (data.error) {
             if (data.error === 'No transcription generated' || 
                 (data.details && data.details.includes('no transcript'))) {
@@ -288,10 +306,10 @@ export default function ChatInterface() {
             } else {
               setTranscriptionMessage(`Failed to transcribe audio: ${data.error}`);
             }
+            // Only cleanup resources after transcription is complete
+            cleanupAudioResources();
+            setShowBlob(false);
           }
-          // Only cleanup resources after transcription is complete
-          cleanupAudioResources();
-          setShowBlob(false);
         } catch (error) {
           console.error('Error sending audio for transcription:', error);
           setTranscriptionMessage('Failed to send audio for transcription. Please try again.');
@@ -319,7 +337,7 @@ export default function ChatInterface() {
   };
 
   if (!browserSupportsSpeechRecognition) {
-    return <span>Browser doesn't support speech recognition.</span>;
+    return <span>Browser doesn&apos;t support speech recognition.</span>;
   }
 
   return (
@@ -375,7 +393,7 @@ export default function ChatInterface() {
           minRows={1}
           maxRows={6}
           className="flex-1 resize-none p-3 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all shadow-inner min-h-[44px] max-h-[160px] text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
-          placeholder="Type or speak…"
+          placeholder="Type or speak&hellip;"
         />
         <button
           type="button"
@@ -402,10 +420,14 @@ export default function ChatInterface() {
         </button>
         <button
           type="submit"
-          className="p-3 rounded-full bg-blue-500 dark:bg-blue-700 hover:bg-blue-600 dark:hover:bg-blue-800 text-white shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 ml-2"
-          title="Send message"
+          disabled={isRecording || isLoading}
+          className={`p-3 rounded-full shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 ml-2 
+            ${isRecording || isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 dark:bg-blue-700 hover:bg-blue-600 dark:hover:bg-blue-800'} text-white`}
+          title={isRecording ? "Recording will auto-send" : "Send message"}
         >
-          <span className="font-semibold">Send</span>
+          <span className="font-semibold">
+            {isRecording ? 'Auto-send' : 'Send'}
+          </span>
         </button>
       </form>
       {transcriptionMessage && (
