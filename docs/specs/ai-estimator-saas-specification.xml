@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<specification>
+  <project>
+    <name>AI Estimator SaaS Platform</name>
+    <version>2.0</version>
+    <description>A SaaS platform that provides embeddable AI-powered estimators for businesses, integrated into custom websites</description>
+    <created_date>2025-06-21</created_date>
+  </project>
+
+  <current_state>
+    <working_features>
+      <feature>Clerk authentication for business owners</feature>
+      <feature>Excel/CSV document upload and processing</feature>
+      <feature>Claude AI integration for quote generation</feature>
+      <feature>Deepgram STT integration</feature>
+      <feature>Business-specific chat pages (/business/[slug])</feature>
+      <feature>Basic dashboard for document management</feature>
+      <feature>Animated voice input visualization</feature>
+    </working_features>
+    
+    <issues>
+      <issue priority="high">No embeddable API/widget system for external websites</issue>
+      <issue priority="high">Rigid document schema limits business model flexibility</issue>
+      <issue priority="high">No proper business entity model (using Clerk user ID as business ID)</issue>
+      <issue priority="medium">Only supports Excel/CSV (missing PDF, Word, etc.)</issue>
+      <issue priority="medium">No TTS implementation</issue>
+      <issue priority="medium">No AI-powered document analysis</issue>
+      <issue priority="low">Custom domain/slug management missing</issue>
+    </issues>
+  </current_state>
+
+  <architecture>
+    <overview>
+      <description>Multi-tenant SaaS platform with embeddable widgets for custom business websites</description>
+      <deployment_model>Single Next.js application serving multiple tenants</deployment_model>
+    </overview>
+
+    <data_models>
+      <model name="Business">
+        <fields>
+          <field name="id" type="uuid" primary_key="true"/>
+          <field name="name" type="string" required="true"/>
+          <field name="slug" type="string" unique="true" required="true"/>
+          <field name="domain" type="string" optional="true"/>
+          <field name="owner_user_id" type="string" required="true"/>
+          <field name="api_key" type="string" unique="true" required="true"/>
+          <field name="settings" type="json" default="{}"/>
+          <field name="created_at" type="timestamp"/>
+          <field name="updated_at" type="timestamp"/>
+        </fields>
+      </model>
+
+      <model name="PricingDocument">
+        <fields>
+          <field name="id" type="uuid" primary_key="true"/>
+          <field name="business_id" type="uuid" foreign_key="Business.id"/>
+          <field name="filename" type="string" required="true"/>
+          <field name="file_path" type="string" required="true"/>
+          <field name="file_type" type="string" required="true"/>
+          <field name="processing_status" type="enum" values="pending,processing,completed,failed"/>
+          <field name="extracted_data" type="json"/>
+          <field name="ai_analysis" type="text"/>
+          <field name="created_at" type="timestamp"/>
+        </fields>
+      </model>
+
+      <model name="ChatSession">
+        <fields>
+          <field name="id" type="uuid" primary_key="true"/>
+          <field name="business_id" type="uuid" foreign_key="Business.id"/>
+          <field name="session_token" type="string" unique="true"/>
+          <field name="customer_info" type="json" optional="true"/>
+          <field name="created_at" type="timestamp"/>
+          <field name="last_activity" type="timestamp"/>
+        </fields>
+      </model>
+
+      <model name="ChatMessage">
+        <fields>
+          <field name="id" type="uuid" primary_key="true"/>
+          <field name="session_id" type="uuid" foreign_key="ChatSession.id"/>
+          <field name="role" type="enum" values="user,assistant"/>
+          <field name="content" type="text" required="true"/>
+          <field name="metadata" type="json" default="{}"/>
+          <field name="created_at" type="timestamp"/>
+        </fields>
+      </model>
+    </data_models>
+
+    <api_design>
+      <rest_apis>
+        <endpoint path="/api/v1/businesses/{businessId}/chat" method="POST">
+          <description>Public endpoint for customer chat interactions</description>
+          <authentication>API key or session token</authentication>
+          <request>
+            <field name="message" type="string" required="true"/>
+            <field name="session_token" type="string" optional="true"/>
+            <field name="audio_data" type="base64" optional="true"/>
+          </request>
+          <response>
+            <field name="response" type="string"/>
+            <field name="session_token" type="string"/>
+            <field name="audio_response" type="base64" optional="true"/>
+          </response>
+        </endpoint>
+
+        <endpoint path="/api/v1/businesses/{businessId}/documents" method="POST">
+          <description>Upload pricing documents</description>
+          <authentication>Business owner authentication</authentication>
+          <request_type>multipart/form-data</request_type>
+        </endpoint>
+
+        <endpoint path="/api/v1/embed/widget.js" method="GET">
+          <description>Embeddable JavaScript widget</description>
+          <query_params>
+            <param name="business_id" required="true"/>
+            <param name="theme" optional="true"/>
+            <param name="position" optional="true"/>
+          </query_params>
+        </endpoint>
+      </rest_apis>
+
+      <widget_system>
+        <embed_code>
+          <![CDATA[
+          <script src="https://estimator.yourdomain.com/api/v1/embed/widget.js?business_id=YOUR_BUSINESS_ID"></script>
+          <div id="ai-estimator-widget"></div>
+          ]]>
+        </embed_code>
+        <features>
+          <feature>Responsive design</feature>
+          <feature>Customizable theming</feature>
+          <feature>Modal or inline positioning</feature>
+          <feature>Voice and text input</feature>
+          <feature>Cross-origin support</feature>
+        </features>
+      </widget_system>
+    </api_design>
+  </architecture>
+
+  <features>
+    <feature name="Flexible Document Processing">
+      <description>AI-powered document analysis that adapts to any business pricing model</description>
+      <implementation>
+        <step>Add support for PDF, Word, and other document formats</step>
+        <step>Implement Claude document analysis to extract pricing patterns</step>
+        <step>Create dynamic schema generation based on document content</step>
+        <step>Add manual pricing data entry interface as fallback</step>
+      </implementation>
+    </feature>
+
+    <feature name="Text-to-Speech Integration">
+      <description>Complete the voice interaction loop with TTS responses</description>
+      <implementation>
+        <step>Integrate ElevenLabs or similar TTS service</step>
+        <step>Add voice response settings per business</step>
+        <step>Implement audio streaming for real-time responses</step>
+      </implementation>
+    </feature>
+
+    <feature name="Business Onboarding Flow">
+      <description>Streamlined setup process for new businesses</description>
+      <implementation>
+        <step>Create business registration form</step>
+        <step>Generate unique slug and API key</step>
+        <step>Document upload wizard</step>
+        <step>Widget configuration interface</step>
+        <step>Testing and deployment tools</step>
+      </implementation>
+    </feature>
+
+    <feature name="Analytics Dashboard">
+      <description>Insights for business owners on customer interactions</description>
+      <implementation>
+        <step>Chat session tracking</step>
+        <step>Quote generation metrics</step>
+        <step>Popular service/product analysis</step>
+        <step>Customer interaction patterns</step>
+      </implementation>
+    </feature>
+
+    <feature name="Embeddable Widget System">
+      <description>JavaScript widget for easy integration into client websites</description>
+      <implementation>
+        <step>Create iframe-based widget architecture</step>
+        <step>Implement PostMessage communication</step>
+        <step>Add theming and customization options</step>
+        <step>Ensure mobile responsiveness</step>
+        <step>Add position controls (modal, sidebar, inline)</step>
+      </implementation>
+    </feature>
+  </features>
+
+  <technical_requirements>
+    <database>
+      <type>PostgreSQL</type>
+      <orm>Prisma</orm>
+      <migrations>Required for schema changes</migrations>
+    </database>
+
+    <file_storage>
+      <service>AWS S3 or similar</service>
+      <purpose>Pricing documents and audio files</purpose>
+    </file_storage>
+
+    <ai_services>
+      <llm>Claude 3.5 Sonnet (Anthropic)</llm>
+      <stt>Deepgram</stt>
+      <tts>ElevenLabs or Azure Cognitive Services</tts>
+      <document_analysis>Claude with vision capabilities</document_analysis>
+    </ai_services>
+
+    <authentication>
+      <business_owners>Clerk (existing)</business_owners>
+      <api_access>API keys and session tokens</api_access>
+      <customers>Anonymous with optional contact info</customers>
+    </authentication>
+  </technical_requirements>
+
+  <implementation_phases>
+    <phase number="1" name="Data Model Refactor">
+      <tasks>
+        <task>Set up PostgreSQL database</task>
+        <task>Create Prisma schema with new models</task>
+        <task>Implement database migrations</task>
+        <task>Refactor existing code to use new models</task>
+      </tasks>
+      <estimated_time>1-2 weeks</estimated_time>
+    </phase>
+
+    <phase number="2" name="Enhanced Document Processing">
+      <tasks>
+        <task>Add support for multiple file formats</task>
+        <task>Implement AI-powered document analysis</task>
+        <task>Create flexible pricing data extraction</task>
+        <task>Add manual data entry interface</task>
+      </tasks>
+      <estimated_time>2-3 weeks</estimated_time>
+    </phase>
+
+    <phase number="3" name="API Development">
+      <tasks>
+        <task>Design and implement REST APIs</task>
+        <task>Add API authentication and rate limiting</task>
+        <task>Create API documentation</task>
+        <task>Implement session management</task>
+      </tasks>
+      <estimated_time>2-3 weeks</estimated_time>
+    </phase>
+
+    <phase number="4" name="Widget System">
+      <tasks>
+        <task>Create embeddable JavaScript widget</task>
+        <task>Implement iframe-based architecture</task>
+        <task>Add theming and customization</task>
+        <task>Ensure cross-origin compatibility</task>
+      </tasks>
+      <estimated_time>3-4 weeks</estimated_time>
+    </phase>
+
+    <phase number="5" name="TTS and Voice Enhancement">
+      <tasks>
+        <task>Integrate TTS service</task>
+        <task>Add audio streaming capabilities</task>
+        <task>Enhance voice interaction UX</task>
+        <task>Add voice settings per business</task>
+      </tasks>
+      <estimated_time>1-2 weeks</estimated_time>
+    </phase>
+
+    <phase number="6" name="Business Management">
+      <tasks>
+        <task>Create business onboarding flow</task>
+        <task>Build analytics dashboard</task>
+        <task>Add business settings management</task>
+        <task>Implement custom domain support</task>
+      </tasks>
+      <estimated_time>2-3 weeks</estimated_time>
+    </phase>
+  </implementation_phases>
+
+  <testing_strategy>
+    <unit_tests>All business logic and API endpoints</unit_tests>
+    <integration_tests>Database operations and external service calls</integration_tests>
+    <e2e_tests>Complete user workflows for both business owners and customers</e2e_tests>
+    <widget_tests>Cross-browser and cross-domain compatibility</widget_tests>
+  </testing_strategy>
+
+  <deployment_considerations>
+    <hosting>Vercel or AWS with CDN for widget delivery</hosting>
+    <environment_variables>Secure management of API keys and secrets</environment_variables>
+    <monitoring>Application performance and error tracking</monitoring>
+    <scaling>Database connection pooling and API rate limiting</scaling>
+  </deployment_considerations>
+
+  <success_metrics>
+    <metric>Number of businesses onboarded</metric>
+    <metric>Widget embedding rate</metric>
+    <metric>Customer interaction volume</metric>
+    <metric>Quote generation accuracy</metric>
+    <metric>Customer satisfaction scores</metric>
+  </success_metrics>
+</specification> 
