@@ -218,64 +218,94 @@
   </technical_requirements>
 
   <implementation_phases>
-    <phase number="1" name="Data Model Refactor">
+    <phase number="0" name="Demo Deployment" priority="IMMEDIATE">
+      <description>Get current functionality online as a working demo for validation and customer presentations</description>
       <tasks>
-        <task>Set up PostgreSQL database</task>
-        <task>Create Prisma schema with new models</task>
-        <task>Implement database migrations</task>
-        <task>Refactor existing code to use new models</task>
+        <task>Integrate TTS service (ElevenLabs) for voice responses</task>
+        <task>Polish UI/UX for demo presentation</task>
+        <task>Deploy to Vercel with environment variables</task>
+        <task>Test end-to-end functionality (admin upload, public chat, voice I/O)</task>
+        <task>Create demo script and test scenarios</task>
       </tasks>
-      <estimated_time>1-2 weeks</estimated_time>
+      <estimated_time>1 week</estimated_time>
+      <success_criteria>
+        <criterion>Admin can upload documents and they are processed</criterion>
+        <criterion>Public users can chat via text and voice</criterion>
+        <criterion>AI responds with voice when user used voice input</criterion>
+        <criterion>Site is accessible online with reliable hosting</criterion>
+      </success_criteria>
     </phase>
 
-    <phase number="2" name="Enhanced Document Processing">
+    <phase number="1" name="Enhanced Document Processing" priority="HIGH">
+      <description>Improve document handling based on demo feedback and real-world usage</description>
       <tasks>
-        <task>Add support for multiple file formats</task>
-        <task>Implement AI-powered document analysis</task>
-        <task>Create flexible pricing data extraction</task>
-        <task>Add manual data entry interface</task>
+        <task>Add support for PDF and Word document formats</task>
+        <task>Implement AI-powered document analysis for flexible schemas</task>
+        <task>Create dynamic pricing data extraction</task>
+        <task>Add manual data entry interface as fallback</task>
+        <task>Improve error handling and user feedback</task>
       </tasks>
       <estimated_time>2-3 weeks</estimated_time>
     </phase>
 
-    <phase number="3" name="API Development">
+    <phase number="2" name="Multi-Business Support" priority="HIGH">
+      <description>Add proper multi-tenant capabilities while keeping current simple deployment</description>
+      <tasks>
+        <task>Set up PostgreSQL database (local file system backup)</task>
+        <task>Create Business and PricingDocument models</task>
+        <task>Implement proper business isolation</task>
+        <task>Add business registration and management</task>
+        <task>Migrate existing file-based system to database</task>
+      </tasks>
+      <estimated_time>2-3 weeks</estimated_time>
+    </phase>
+
+    <phase number="3" name="Embeddable Widget System" priority="MEDIUM">
+      <description>Core SaaS feature - embeddable widgets for client websites</description>
+      <tasks>
+        <task>Create embeddable JavaScript widget</task>
+        <task>Implement iframe-based architecture</task>
+        <task>Add theming and customization options</task>
+        <task>Ensure cross-origin compatibility</task>
+        <task>Test across multiple website environments</task>
+      </tasks>
+      <estimated_time>3-4 weeks</estimated_time>
+    </phase>
+
+    <phase number="4" name="API System" priority="MEDIUM">
+      <description>REST APIs for programmatic access and widget communication</description>
       <tasks>
         <task>Design and implement REST APIs</task>
         <task>Add API authentication and rate limiting</task>
         <task>Create API documentation</task>
         <task>Implement session management</task>
+        <task>Add webhook support for integrations</task>
       </tasks>
       <estimated_time>2-3 weeks</estimated_time>
     </phase>
 
-    <phase number="4" name="Widget System">
+    <phase number="5" name="Business Management & Analytics" priority="LOW">
+      <description>Advanced features for business owners</description>
       <tasks>
-        <task>Create embeddable JavaScript widget</task>
-        <task>Implement iframe-based architecture</task>
-        <task>Add theming and customization</task>
-        <task>Ensure cross-origin compatibility</task>
+        <task>Build comprehensive analytics dashboard</task>
+        <task>Add advanced business settings</task>
+        <task>Implement custom domain support</task>
+        <task>Create business onboarding flow</task>
+        <task>Add billing and subscription management</task>
       </tasks>
       <estimated_time>3-4 weeks</estimated_time>
     </phase>
 
-    <phase number="5" name="TTS and Voice Enhancement">
+    <phase number="6" name="Scale & Polish" priority="LOW">
+      <description>Production-ready improvements and scaling</description>
       <tasks>
-        <task>Integrate TTS service</task>
-        <task>Add audio streaming capabilities</task>
-        <task>Enhance voice interaction UX</task>
-        <task>Add voice settings per business</task>
+        <task>Implement comprehensive monitoring</task>
+        <task>Add performance optimizations</task>
+        <task>Create automated testing suite</task>
+        <task>Implement advanced caching strategies</task>
+        <task>Add enterprise features (SSO, advanced analytics)</task>
       </tasks>
-      <estimated_time>1-2 weeks</estimated_time>
-    </phase>
-
-    <phase number="6" name="Business Management">
-      <tasks>
-        <task>Create business onboarding flow</task>
-        <task>Build analytics dashboard</task>
-        <task>Add business settings management</task>
-        <task>Implement custom domain support</task>
-      </tasks>
-      <estimated_time>2-3 weeks</estimated_time>
+      <estimated_time>3-4 weeks</estimated_time>
     </phase>
   </implementation_phases>
 
