@@ -45,10 +45,9 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 - Business-specific chat pages
 
 **In Development:**
-- Embeddable widget system (core feature)
-- Multi-format document processing
 - Text-to-speech responses
-- Enhanced API system
+- Enhanced document processing
+- Embeddable widget system
 
 ## 📚 Documentation
 
