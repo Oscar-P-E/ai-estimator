@@ -22,7 +22,8 @@ async function getBusinessPricingData(businessId?: string) {
       // Try the gitignore folder first, then fallback to sample CSV
       try {
         return await processor.processExcelFile('./gitignore/Costings-Domestic Roofing Quotation QRX May 2016.xlsx');
-      } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_) {
         console.log('Default Excel file not found, using sample CSV');
         return await processor.processExcelFile('./sample-pricing.csv');
       }
@@ -34,13 +35,14 @@ async function getBusinessPricingData(businessId?: string) {
     
     try {
       files = await readdir(uploadsDir);
-    } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
       console.log(`No uploads found for business ${businessId}`);
       return [];
     }
 
     const processor = new ExcelProcessor();
-    let allPricingData: any[] = [];
+    let allPricingData: unknown[] = [];
 
     // Process all uploaded files for this business
     for (const file of files) {
@@ -58,7 +60,7 @@ async function getBusinessPricingData(businessId?: string) {
   }
 }
 
-async function generateQuoteWithClaude(message: string, pricingData: any[]) {
+async function generateQuoteWithClaude(message: string, pricingData: unknown[]) {
   const systemPrompt = `You are an AI assistant helping customers get accurate quotes from a business. You have access to the business's pricing data and should use it to provide helpful, accurate quotes.
 
 PRICING DATA:

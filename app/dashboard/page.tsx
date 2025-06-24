@@ -38,7 +38,8 @@ export default function DashboardPage() {
       } else {
         setError(data.error || 'Upload failed');
       }
-    } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
       setError('Upload failed');
     }
     setUploading(false);

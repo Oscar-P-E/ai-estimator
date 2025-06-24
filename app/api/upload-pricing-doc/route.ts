@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
     let files: string[] = [];
     try {
       files = await readdir(uploadsDir);
-    } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
       // Directory may not exist yet
       files = [];
     }

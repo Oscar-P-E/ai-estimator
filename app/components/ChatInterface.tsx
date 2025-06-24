@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -85,7 +85,14 @@ export default function ChatInterface() {
   // Function to play audio response
   const playAudioResponse = (audioBase64: string) => {
     try {
-      const audioBlob = new Blob([Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+      // Convert base64 to blob
+      const binaryString = atob(audioBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       
@@ -93,65 +100,54 @@ export default function ChatInterface() {
         URL.revokeObjectURL(audioUrl);
       };
       
-      // Handle both Promise and non-Promise returns from play()
-      const playPromise = audio.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(err => {
-          console.error('Error playing audio:', err);
-        });
-      }
+      audio.play().catch(console.error);
     } catch (error) {
-      console.error('Error creating audio from base64:', error);
+      console.error('Error playing audio response:', error);
     }
   };
 
-
-
-  // Cleanup function for audio resources
-  const cleanupAudioResources = (keepAnalyzer = false) => {
+  const cleanupAudioResources = useCallback((keepAnalyzer = false) => {
     // Stop media recorder
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
     }
-    
+
     // Stop speech recognition
     if (listening) {
       SpeechRecognition.stopListening();
     }
-    
-    // Stop and cleanup audio stream tracks
-    if (audioStream && !keepAnalyzer) {
+
+    // Cancel animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    // Close audio stream
+    if (audioStream) {
       audioStream.getTracks().forEach(track => track.stop());
       setAudioStream(null);
     }
 
-    // Cancel animation frame and disconnect analyzer only if not keeping it
-    if (!keepAnalyzer) {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-
-      if (analyserRef.current) {
-        analyserRef.current.disconnect();
-      }
-      
-      setAudioLevel(0);
+    // Clear analyzer reference unless keeping it
+    if (!keepAnalyzer && analyserRef.current) {
+      analyserRef.current = null;
     }
 
-    setIsRecording(false);
-    // Only hide blob when not transcribing
-    if (!isTranscribing) {
+    // Reset states
+    if (!keepAnalyzer) {
+      setIsRecording(false);
+      setIsTranscribing(false);
+      setAudioLevel(0);
       setShowBlob(false);
     }
-  };
+  }, [mediaRecorder, listening, audioStream, animationFrameRef, analyserRef]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupAudioResources();
     };
-  }, []);
+  }, [cleanupAudioResources]);
 
   // Shared function to send message (used by both form submit and auto-send)
   const sendMessage = async (messageText: string, wasVoiceInput: boolean) => {

@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the file temporarily
-    const buffer = Buffer.from(await file.arrayBuffer());
     const tempFilePath = path.join(process.cwd(), 'temp', file.name);
     
     // Process the Excel file

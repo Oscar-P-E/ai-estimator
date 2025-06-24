@@ -24,7 +24,7 @@ export default function Home() {
           </div>
           <p className="mt-2 text-lg text-gray-600 dark:text-gray-300 text-center max-w-xl">
             <span className="font-semibold">For business owners:</span> Log in, upload your pricing documents, and get a unique public chat page for your clients.<br />
-            <span className="font-semibold">For clients:</span> Visit your business's chat page and get instant, AI-powered quotes based on real pricing data.
+            <span className="font-semibold">For clients:</span> Visit your business&apos;s chat page and get instant, AI-powered quotes based on real pricing data.
           </p>
         </header>
         <div className="flex-1 flex flex-col min-h-0">
