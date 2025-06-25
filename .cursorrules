@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cursor-rules>
+  <project>
+    <name>AI Estimator SaaS</name>
+    <description>AI-powered quoting assistant SaaS platform built with Next.js 15, Clerk auth, Claude AI, Deepgram STT, and ElevenLabs TTS. Helps businesses provide instant quotes to clients through voice and text chat.</description>
+  </project>
+
+  <workflow>
+    <methodology>Plan → Spec → Code</methodology>
+    <phases>
+      <phase name="PLAN">
+        <step>Always start by understanding the user's goal</step>
+        <step>Reference the XML specification in /docs/specs/ai-estimator-saas-specification.xml</step>
+        <step>Identify which phase/task we're working on</step>
+        <step>Break down complex features into smaller, manageable tasks</step>
+        <step>Consider dependencies and prerequisites</step>
+      </phase>
+      <phase name="SPEC">
+        <step>Review existing specifications and documentation</step>
+        <step>Define technical requirements clearly</step>
+        <step>Identify affected files and components</step>
+        <step>Plan API endpoints, data structures, and user flows</step>
+        <step>Consider error handling and edge cases</step>
+      </phase>
+      <phase name="CODE">
+        <step>Implement changes systematically</step>
+        <step>Follow Next.js 15 best practices and TypeScript standards</step>
+        <step>Test locally before deployment</step>
+        <step>Fix any ESLint/build errors</step>
+        <step>Update documentation as needed</step>
+      </phase>
+    </phases>
+  </workflow>
+
+  <project-structure>
+    <directory path="/app" description="Next.js 15 app router structure" />
+    <directory path="/app/api" description="API routes (chat, transcribe, text-to-speech, etc.)" />
+    <directory path="/app/components" description="React components" />
+    <directory path="/app/business/[slug]" description="Business-specific chat pages" />
+    <directory path="/docs/specs" description="Project specifications and requirements" />
+  </project-structure>
+
+  <technologies>
+    <category name="Frontend">
+      <tech>Next.js 15</tech>
+      <tech>React 19</tech>
+      <tech>TypeScript</tech>
+      <tech>Tailwind CSS</tech>
+    </category>
+    <category name="Authentication">
+      <tech>Clerk (publishable + secret keys)</tech>
+    </category>
+    <category name="AI Services">
+      <tech>Anthropic Claude 3.5 Sonnet</tech>
+    </category>
+    <category name="Audio Processing">
+      <tech>Deepgram (STT)</tech>
+      <tech>ElevenLabs (TTS)</tech>
+    </category>
+    <category name="Deployment">
+      <tech>Vercel</tech>
+    </category>
+  </technologies>
+
+  <environment-variables>
+    <variable name="NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" type="public" />
+    <variable name="CLERK_SECRET_KEY" type="private" />
+    <variable name="ANTHROPIC_API_KEY" type="private" />
+    <variable name="DEEPGRAM_API_KEY" type="private" />
+    <variable name="ELEVENLABS_API_KEY" type="private" />
+  </environment-variables>
+
+  <development-guidelines>
+    <guideline>Always check the XML specification for current status and requirements</guideline>
+    <guideline>Use parallel tool calls for efficiency when gathering information</guideline>
+    <guideline>Fix ESLint errors before deployment</guideline>
+    <guideline>Test voice functionality thoroughly</guideline>
+    <guideline>Maintain clean, readable code with proper TypeScript types</guideline>
+    <guideline>Let the XML spec be the single source of truth for project status and tasks</guideline>
+  </development-guidelines>
+</cursor-rules> 
