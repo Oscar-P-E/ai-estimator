@@ -9,22 +9,23 @@
 
   <current_state>
     <working_features>
-      <feature>Clerk authentication for business owners</feature>
-      <feature>Excel/CSV document upload and processing</feature>
+      <feature>Clerk authentication for business owners and users</feature>
+      <feature>Multi-format document upload (Excel, PDF, Word, etc.)</feature>
+      <feature>AI-powered document interpretation (no schema required)</feature>
       <feature>Claude AI integration for quote generation</feature>
       <feature>Deepgram STT integration</feature>
+      <feature>ElevenLabs TTS integration</feature>
       <feature>Business-specific chat pages (/business/[slug])</feature>
       <feature>Basic dashboard for document management</feature>
       <feature>Animated voice input visualization</feature>
+      <feature>Complete voice conversation loop (STT → AI → TTS)</feature>
     </working_features>
     
     <issues>
       <issue priority="high">No embeddable API/widget system for external websites</issue>
-      <issue priority="high">Rigid document schema limits business model flexibility</issue>
       <issue priority="high">No proper business entity model (using Clerk user ID as business ID)</issue>
-      <issue priority="medium">Only supports Excel/CSV (missing PDF, Word, etc.)</issue>
-      <issue priority="medium">No TTS implementation</issue>
-      <issue priority="medium">No AI-powered document analysis</issue>
+      <issue priority="medium">No quote persistence for logged-in users</issue>
+      <issue priority="medium">No business file isolation (all files globally accessible)</issue>
       <issue priority="low">Custom domain/slug management missing</issue>
     </issues>
   </current_state>
@@ -34,6 +35,24 @@
       <description>Multi-tenant SaaS platform with embeddable widgets for custom business websites</description>
       <deployment_model>Single Next.js application serving multiple tenants</deployment_model>
     </overview>
+
+    <ai_context_system>
+      <description>Simplified file-based AI context system where files are read directly by AI during conversations</description>
+      <file_storage>
+        <structure>business_files/{business_id}/{filename}</structure>
+        <supported_formats>Excel, CSV, PDF, Word, Text</supported_formats>
+        <processing>None - files read raw by AI during chat</processing>
+      </file_storage>
+      <quote_persistence>
+        <structure>user_quotes/{business_id}/{user_id}/{session_id}_{timestamp}.xml</structure>
+        <triggers>When logged-in user receives quote from AI</triggers>
+        <content>Full conversation context + generated quote</content>
+      </quote_persistence>
+      <context_loading>
+        <method>All business files loaded as context for each AI request</method>
+        <isolation>Users only access files for their business context</isolation>
+      </context_loading>
+    </ai_context_system>
 
     <data_models>
       <model name="Business">
@@ -50,17 +69,30 @@
         </fields>
       </model>
 
-      <model name="PricingDocument">
+      <model name="BusinessFile">
         <fields>
           <field name="id" type="uuid" primary_key="true"/>
           <field name="business_id" type="uuid" foreign_key="Business.id"/>
           <field name="filename" type="string" required="true"/>
           <field name="file_path" type="string" required="true"/>
           <field name="file_type" type="string" required="true"/>
-          <field name="processing_status" type="enum" values="pending,processing,completed,failed"/>
-          <field name="extracted_data" type="json"/>
-          <field name="ai_analysis" type="text"/>
+          <field name="file_size" type="integer"/>
+          <field name="upload_status" type="enum" values="uploaded,error"/>
           <field name="created_at" type="timestamp"/>
+        </fields>
+      </model>
+
+      <model name="UserQuote">
+        <fields>
+          <field name="id" type="uuid" primary_key="true"/>
+          <field name="business_id" type="uuid" foreign_key="Business.id"/>
+          <field name="user_id" type="string" required="true"/>
+          <field name="session_id" type="string" required="true"/>
+          <field name="quote_content" type="text" required="true"/>
+          <field name="conversation_context" type="json"/>
+          <field name="file_path" type="string" required="true"/>
+          <field name="created_at" type="timestamp"/>
+          <field name="updated_at" type="timestamp"/>
         </fields>
       </model>
 
@@ -139,13 +171,23 @@
   </architecture>
 
   <features>
-    <feature name="Flexible Document Processing">
-      <description>AI-powered document analysis that adapts to any business pricing model</description>
+    <feature name="Simplified AI Context System">
+      <description>Direct AI interpretation of business files without pre-processing or schema extraction</description>
       <implementation>
-        <step>Add support for PDF, Word, and other document formats</step>
-        <step>Implement Claude document analysis to extract pricing patterns</step>
-        <step>Create dynamic schema generation based on document content</step>
-        <step>Add manual pricing data entry interface as fallback</step>
+        <step>Remove complex document processing logic</step>
+        <step>Implement direct file reading for AI context</step>
+        <step>Add business file isolation and security</step>
+        <step>Support multiple file formats (Excel, PDF, Word, CSV)</step>
+      </implementation>
+    </feature>
+
+    <feature name="Quote Persistence System">
+      <description>Save and retrieve quotes for logged-in users across sessions</description>
+      <implementation>
+        <step>Create XML-based quote storage system</step>
+        <step>Implement user session management</step>
+        <step>Add quote retrieval and history functionality</step>
+        <step>Enable business access to customer quotes</step>
       </implementation>
     </feature>
 
@@ -199,8 +241,12 @@
     </database>
 
     <file_storage>
-      <service>AWS S3 or similar</service>
-      <purpose>Pricing documents and audio files</purpose>
+      <service>Local file system (Vercel deployment) or AWS S3</service>
+      <purpose>Business documents, user quotes (XML), and audio files</purpose>
+      <structure>
+        <business_files>business_files/{business_id}/{filename}</business_files>
+        <user_quotes>user_quotes/{business_id}/{user_id}/{session_id}_{timestamp}.xml</user_quotes>
+      </structure>
     </file_storage>
 
     <ai_services>
@@ -224,13 +270,15 @@
         <task status="COMPLETED">✅ Integrate TTS service (ElevenLabs) for voice responses</task>
         <task status="IN_PROGRESS">🔄 Polish UI/UX for demo presentation</task>
         <task status="COMPLETED">✅ Deploy to Vercel with environment variables</task>
-        <task status="PARTIALLY_COMPLETED">🔄 Test end-to-end functionality (admin upload, public chat, voice I/O)</task>
+        <task status="PENDING">⏳ Implement simplified AI context system (remove document processing)</task>
+        <task status="PENDING">⏳ Add quote persistence for logged-in users</task>
+        <task status="PENDING">⏳ Test end-to-end functionality with new AI context system</task>
         <task status="PENDING">⏳ Create demo script and test scenarios</task>
       </tasks>
-      <estimated_time>1 week</estimated_time>
+      <estimated_time>1-2 weeks</estimated_time>
       <progress>
-        <completed_tasks>2/5</completed_tasks>
-        <completion_percentage>40%</completion_percentage>
+        <completed_tasks>2/7</completed_tasks>
+        <completion_percentage>29%</completion_percentage>
         <last_update>2025-01-03</last_update>
         <notes>
           - ✅ ElevenLabs TTS integration completed with full voice conversation loop
@@ -238,15 +286,19 @@
           - ✅ Voice UX improvements: auto-send after recording, proper microphone management
           - ✅ End-to-end voice testing successful: speak → transcribe → AI response → TTS playback
           - ✅ Vercel deployment completed with all environment variables configured
-          - 🔄 Voice I/O testing partially completed (working locally)
-          - ⏳ Still need full end-to-end testing in production environment
+          - 🔄 UI/UX polish in progress for demo presentation
+          - ⏳ Need to implement simplified AI context system (remove complex document processing)
+          - ⏳ Need to add quote persistence for logged-in users
+          - ⏳ Full end-to-end testing required after AI context system changes
         </notes>
       </progress>
       <success_criteria>
-        <criterion status="COMPLETED">✅ Admin can upload documents and they are processed</criterion>
+        <criterion status="COMPLETED">✅ Site is accessible online with reliable hosting</criterion>
         <criterion status="COMPLETED">✅ Public users can chat via text and voice</criterion>
         <criterion status="COMPLETED">✅ AI responds with voice when user used voice input</criterion>
-        <criterion status="COMPLETED">✅ Site is accessible online with reliable hosting</criterion>
+        <criterion status="PENDING">⏳ Admin can upload files and AI uses them as context</criterion>
+        <criterion status="PENDING">⏳ Logged-in users get quotes saved for future reference</criterion>
+        <criterion status="PENDING">⏳ AI can interpret multiple file formats without pre-processing</criterion>
       </success_criteria>
     </phase>
 

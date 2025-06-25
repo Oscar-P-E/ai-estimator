@@ -2,7 +2,7 @@
 
 > **Embeddable AI-powered estimators for custom business websites**
 
-A SaaS platform that provides businesses with intelligent quoting systems that can be embedded into any website. Business owners upload their pricing documents, and customers get instant AI-powered quotes through voice or text interactions.
+A SaaS platform that provides businesses with intelligent quoting systems that can be embedded into any website. Business owners upload their pricing documents which AI reads directly during customer conversations, providing instant contextual quotes through voice or text interactions.
 
 ## 🎯 What This Platform Does
 
@@ -13,13 +13,15 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 
 **For Business Owners:**
 - Upload pricing documents (Excel, CSV, PDF, Word - any format)
+- AI reads and interprets documents directly (no pre-processing needed)
 - Get a unique AI estimator for their business
-- Manage customer interactions through a dashboard
+- Access customer quotes and conversation history
 
 **For End Customers:**
 - Visit business websites and chat with AI for quotes
-- No login required - just describe what they need
-- Voice or text input - AI responds appropriately
+- Optional login to save quotes for future reference
+- Voice or text input - AI responds in same format
+- Complete voice conversation experience
 
 ## 🛠️ Tech Stack
 
@@ -32,7 +34,7 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 | **AI/LLM** | Claude 3.5 Sonnet (Anthropic) |
 | **Speech-to-Text** | Deepgram |
 | **Text-to-Speech** | ElevenLabs |
-| **Document Processing** | XLSX, planned: multi-format AI analysis |
+| **Document Handling** | Multi-format AI interpretation (no pre-processing) |
 | **Database** | Planned: PostgreSQL with Prisma |
 | **Deployment** | Vercel |
 
@@ -40,14 +42,17 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 
 **Working Features:**
 - Business owner authentication and dashboard
-- Document upload and processing (Excel/CSV)
-- AI-powered quote generation
-- Voice input with speech-to-text
-- **NEW: Voice responses with text-to-speech**
-- Business-specific chat pages
+- Multi-format document upload (Excel, CSV, PDF, Word, etc.)
+- Direct AI interpretation of business documents
+- AI-powered quote generation with document context
+- Complete voice conversation loop (STT → AI → TTS)
+- Business-specific chat pages (/business/[slug])
+- User authentication for quote persistence
+- Deployed and accessible online (Vercel)
 
 **In Development:**
-- Enhanced document processing
+- Quote persistence system for logged-in users
+- UI/UX polish for demo presentation
 - Embeddable widget system
 - Multi-business support with database
 
