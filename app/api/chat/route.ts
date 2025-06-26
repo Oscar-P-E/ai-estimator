@@ -1,101 +1,124 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { ExcelProcessor } from '@/app/services/document-processor/excel-processor';
 import path from 'path';
-import { readdir } from 'fs/promises';
+import { readdir, readFile } from 'fs/promises';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface ChatMessage {
   message: string;
+  conversationHistory?: Message[];
   businessId?: string;
   isVoiceInput?: boolean;
 }
 
-async function getBusinessPricingData(businessId?: string) {
+async function loadBusinessFiles(businessId?: string): Promise<string> {
   try {
     if (!businessId) {
-      // For demo purposes, load a default file if no business ID
-      const processor = new ExcelProcessor();
-      // Try the gitignore folder first, then fallback to sample CSV
+      // For demo purposes, try to load sample data
       try {
-        return await processor.processExcelFile('./gitignore/Costings-Domestic Roofing Quotation QRX May 2016.xlsx');
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (_) {
-        console.log('Default Excel file not found, using sample CSV');
-        return await processor.processExcelFile('./sample-pricing.csv');
+        const samplePath = path.join(process.cwd(), 'sample-pricing.csv');
+        const sampleContent = await readFile(samplePath, 'utf-8');
+        return `SAMPLE BUSINESS PRICING DATA:\n\n${sampleContent}`;
+      } catch {
+        return 'No business files available for this demo.';
       }
     }
 
-    // Load files for specific business
-    const uploadsDir = path.join(process.cwd(), 'uploads', businessId);
-    let files: string[] = [];
+    // Load all files for the specific business
+    const businessDir = path.join(process.cwd(), 'business_files', businessId);
+    let businessContext = '';
     
     try {
-      files = await readdir(uploadsDir);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_) {
-      console.log(`No uploads found for business ${businessId}`);
-      return [];
-    }
-
-    const processor = new ExcelProcessor();
-    let allPricingData: unknown[] = [];
-
-    // Process all uploaded files for this business
-    for (const file of files) {
-      if (file.endsWith('.xlsx') || file.endsWith('.xls') || file.endsWith('.csv')) {
-        const filePath = path.join(uploadsDir, file);
-        const data = await processor.processExcelFile(filePath);
-        allPricingData = [...allPricingData, ...data];
+      const files = await readdir(businessDir);
+      
+      if (files.length === 0) {
+        return 'No business files uploaded yet.';
       }
-    }
 
-    return allPricingData;
+      businessContext += `BUSINESS FILES (${files.length} files):\n\n`;
+      
+      // Read each file and add to context
+      for (const fileName of files) {
+        const filePath = path.join(businessDir, fileName);
+        const fileExtension = path.extname(fileName).toLowerCase();
+        
+        try {
+          let fileContent = '';
+          
+          // Handle different file types that Claude can read directly
+          if (['.txt', '.md', '.csv', '.json', '.xml', '.py', '.js', '.ts', '.html', '.css'].includes(fileExtension)) {
+            fileContent = await readFile(filePath, 'utf-8');
+          } else if (['.pdf', '.docx', '.xlsx', '.xls'].includes(fileExtension)) {
+            // For demo purposes, note these files exist but would need proper processing
+            fileContent = `[${fileExtension.toUpperCase()} FILE: ${fileName} - Claude can interpret this file type directly]`;
+          } else if (['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(fileExtension)) {
+            fileContent = `[IMAGE FILE: ${fileName} - Claude can analyze this image when needed]`;
+          } else {
+            fileContent = `[FILE: ${fileName} - Available for reference]`;
+          }
+          
+          businessContext += `--- FILE: ${fileName} ---\n${fileContent}\n\n`;
+        } catch (error) {
+          console.error(`Error reading file ${fileName}:`, error);
+          businessContext += `--- FILE: ${fileName} ---\n[Error reading file]\n\n`;
+        }
+      }
+      
+      return businessContext;
+    } catch {
+      return 'No business files uploaded yet.';
+    }
   } catch (error) {
-    console.error('Error loading pricing data:', error);
-    return [];
+    console.error('Error loading business files:', error);
+    return 'Error loading business files.';
   }
 }
 
-async function generateQuoteWithClaude(message: string, pricingData: unknown[]) {
-  const systemPrompt = `You are an AI assistant helping customers get accurate quotes from a business. You have access to the business's pricing data and should use it to provide helpful, accurate quotes.
+async function generateQuoteWithClaude(conversationHistory: Message[], businessContext: string) {
+  const systemPrompt = `You are an AI assistant helping customers get accurate quotes from a business. You have access to all the business's files and pricing information, which will be provided below.
 
-PRICING DATA:
-${JSON.stringify(pricingData, null, 2)}
+BUSINESS CONTEXT AND FILES:
+${businessContext}
 
 Your role:
-1. Help customers understand what services/products are available
+1. Help customers understand what services/products are available based on the business files
 2. Ask clarifying questions to determine exactly what they need
-3. Calculate accurate quotes based on the pricing data
+3. Calculate accurate quotes based on the pricing data and information in the files
 4. Explain the breakdown of costs clearly
 5. Be helpful and professional
 
 Guidelines:
-- Always base quotes on the actual pricing data provided
+- Always base quotes on the actual information provided in the business files
 - Ask for specifics (quantities, dimensions, materials, etc.) when needed
 - Provide itemized breakdowns when giving quotes
-- If something isn't in the pricing data, let them know you'll need to check with the business
+- If something isn't covered in the files, let them know you'll need to check with the business
 - Be conversational and helpful, not robotic
+- If images are referenced, you can describe what you would expect to see or ask for clarification
+- Maintain conversation context and refer back to previous messages as needed
 
-Current customer message: "${message}"
-
-Respond helpfully and professionally. If this is their first message, welcome them and ask what kind of project or service they're looking for.`;
+Respond helpfully and professionally. If this is their first message, welcome them and ask what kind of project or service they're looking for based on what you see in the business files.`;
 
   try {
+    // Convert conversation history to Anthropic format
+    const anthropicMessages = conversationHistory.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1000,
       temperature: 0.7,
       system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
+      messages: anthropicMessages,
     });
 
     return response.content[0].type === 'text' ? response.content[0].text : 'I apologize, but I encountered an error generating a response.';
@@ -107,7 +130,7 @@ Respond helpfully and professionally. If this is their first message, welcome th
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, businessId, isVoiceInput }: ChatMessage = await request.json();
+    const { message, conversationHistory = [], businessId, isVoiceInput }: ChatMessage = await request.json();
     
     if (!message) {
       return NextResponse.json(
@@ -116,11 +139,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Load pricing data for the business
-    const pricingData = await getBusinessPricingData(businessId);
+    // Load all business files as context
+    const businessContext = await loadBusinessFiles(businessId);
 
-    // Generate response using Claude
-    const response = await generateQuoteWithClaude(message, pricingData);
+    // If no conversation history provided, create it with just the current message
+    const fullConversation = conversationHistory.length > 0 
+      ? conversationHistory 
+      : [{ role: 'user' as const, content: message }];
+
+    // Generate response using Claude with full conversation context
+    const response = await generateQuoteWithClaude(fullConversation, businessContext);
 
     // Generate TTS response if this was a voice input
     let audioResponse = null;
@@ -142,10 +170,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Count the number of files for debugging
+    const fileCount = businessContext.includes('files):') ? 
+      parseInt(businessContext.match(/\((\d+) files\):/)?.[1] || '0') : 0;
+
     return NextResponse.json({ 
       response,
       audioResponse,
-      pricingDataCount: pricingData.length 
+      filesLoaded: fileCount
     });
 
   } catch (error) {

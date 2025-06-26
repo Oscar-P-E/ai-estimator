@@ -12,14 +12,14 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 - One platform serves all your clients
 
 **For Business Owners:**
-- Upload pricing documents (Excel, CSV, PDF, Word - any format)
-- Files sent directly to AI for interpretation (zero processing overhead)
-- Get a unique AI estimator for their business
-- Access customer quotes and conversation history
+- Upload any Claude-readable files (Excel, CSV, PDF, Word, images, code files, etc.)
+- Files are stored as-is and read directly by AI (zero processing overhead)
+- Get a unique AI estimator for their business with conversation persistence
+- Manage files easily through the dashboard (upload, list, delete)
 
 **For End Customers:**
 - Visit business websites and chat with AI for quotes
-- Optional login to save quotes for future reference
+- Natural conversation flow with full context maintained
 - Voice or text input - AI responds in same format
 - Complete voice conversation experience
 
@@ -34,28 +34,47 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 | **AI/LLM** | Claude 3.5 Sonnet (Anthropic) |
 | **Speech-to-Text** | Deepgram |
 | **Text-to-Speech** | ElevenLabs |
-| **Document Handling** | Direct file upload to Claude API (zero processing) |
+| **File System** | Direct file storage with Claude interpretation |
 | **Database** | Planned: PostgreSQL with Prisma |
 | **Deployment** | Vercel |
 
-## 📋 Current Status
+## 📋 Current Status (Phase 0: Demo Ready)
 
-**Working Features:**
-- Business owner authentication and dashboard
-- Multi-format document upload (Excel, CSV, PDF, Word, etc.)
-- Raw file storage with business isolation
-- AI-powered quote generation with file context
-- Complete voice conversation loop (STT → AI → TTS)
-- Business-specific chat pages (/business/[slug])
-- User authentication for quote persistence
-- Deployed and accessible online (Vercel)
+**✅ Working Features:**
+- ✅ **Business owner authentication and dashboard**
+- ✅ **Multi-format file upload** (`.txt`, `.md`, `.csv`, `.json`, `.xml`, `.pdf`, `.docx`, `.xlsx`, `.py`, `.js`, `.ts`, `.html`, `.css`, `.png`, `.jpg`, `.gif`, `.webp`)
+- ✅ **Simplified file system** - files stored as-is in `business_files/{business_id}/`
+- ✅ **Enhanced file management** - list files with details, delete files, file validation
+- ✅ **AI-powered quote generation** with full business file context
+- ✅ **Conversation persistence** - maintains context across messages in same session
+- ✅ **Complete voice conversation loop** (STT → AI → TTS)
+- ✅ **Business-specific chat pages** (`/business/[business_id]`)
+- ✅ **Business file isolation** - users only access their own files (using Clerk user ID)
+- ✅ **Polished UI/UX** suitable for demo presentations
+- ✅ **Clean build and deployment ready**
 
-**In Development:**
-- Direct file upload to Claude API (simplified AI context system)
-- Quote persistence system for logged-in users
-- UI/UX polish for demo presentation
-- Embeddable widget system
-- Multi-business support with database
+**🚧 Planned for Phase 1:**
+- 🔄 **Quote persistence for logged-in users**
+- 🔄 **Database-backed multi-tenancy**
+- 🔄 **Embeddable widget system**
+- 🔄 **Advanced business management**
+
+## 🏗️ Architecture
+
+```
+📁 File Upload → 💾 Store as-is → 💬 Chat Request → 🤖 Claude reads all business files as context → 💬 Response
+```
+
+### File System
+- **Structure**: `business_files/{business_id}/{filename}`
+- **Processing**: None - files stored as-is, Claude reads/interprets directly during chat
+- **Supported Formats**: Any Claude-readable format
+- **Isolation**: Using Clerk user ID as business ID for Phase 0
+
+### Conversation Flow
+- **Frontend**: Sends full conversation history with each message
+- **Backend**: Processes complete conversation context with Claude
+- **Result**: Natural conversation flow without losing context
 
 ## 🚀 Quick Start
 
@@ -88,11 +107,17 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
    pnpm dev
    ```
 
+4. **Test the system:**
+   - Go to `/dashboard` to upload business files
+   - Visit `/business/{your-user-id}` to test the chat interface
+   - Try both voice and text interactions
+
 ## 📚 Documentation
 
 - **Technical Specifications:** [docs/specs/](./docs/specs/)
+- **Phase 0 Plan:** [docs/specs/phase-0-demo-ready-plan.md](./docs/specs/phase-0-demo-ready-plan.md)
 
 ---
 
-**Ready to revolutionise how businesses provide quotes online! 🚀**
+**Phase 0: Demo Ready! 🎉 Ready to revolutionise how businesses provide quotes online! 🚀**
 

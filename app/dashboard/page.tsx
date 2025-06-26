@@ -2,94 +2,220 @@
 import { useUser, SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 import { useRef, useState, useEffect } from 'react';
 
+interface FileInfo {
+  name: string;
+  size: number;
+  uploadDate: string;
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
 
   // Fetch uploaded files for the user
   useEffect(() => {
     if (!user) return;
-    fetch('/api/upload-pricing-doc?list=1')
-      .then(res => res.json())
-      .then(data => {
-        if (data.files) setUploadedFiles(data.files);
-      });
+    fetchFiles();
   }, [user]);
+
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch('/api/upload-pricing-doc?list=1');
+      const data = await res.json();
+      if (data.files) {
+        setUploadedFiles(data.files);
+      }
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const file = fileInputRef.current?.files?.[0];
     if (!file) return;
+    
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
+    
     try {
       const res = await fetch('/api/upload-pricing-doc', {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
+      
       if (data.success) {
-        setUploadedFiles(prev => [...prev, file.name]);
+        await fetchFiles(); // Refresh the file list
       } else {
         setError(data.error || 'Upload failed');
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_) {
+    } catch {
       setError('Upload failed');
     }
+    
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const handleDeleteFile = async (fileName: string) => {
+    if (!confirm(`Are you sure you want to delete "${fileName}"?`)) return;
+    
+    setDeletingFile(fileName);
+    
+    try {
+      const res = await fetch('/api/upload-pricing-doc', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName }),
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        await fetchFiles(); // Refresh the file list
+      } else {
+        setError(data.error || 'Delete failed');
+      }
+    } catch {
+      setError('Delete failed');
+    }
+    
+    setDeletingFile(null);
+  };
+
+  const supportedFormats = [
+    '.txt', '.md', '.csv', '.json', '.xml',
+    '.pdf', '.docx', '.xlsx', '.xls',
+    '.py', '.js', '.ts', '.html', '.css',
+    '.png', '.jpg', '.jpeg', '.gif', '.webp'
+  ];
 
   return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] p-8">
       <SignedIn>
         <h2 className="text-2xl font-bold mb-4">Welcome, {user?.firstName || user?.username || 'Business Owner'}!</h2>
-        <p className="mb-6 text-gray-700 dark:text-gray-300">This is your dashboard. Here you can upload and manage your pricing documents, and view your public chat page link.</p>
-        <div className="w-full max-w-lg bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold mb-2">Your Pricing Documents</h3>
-          <form onSubmit={handleFileUpload} className="flex gap-2 mb-4 items-center">
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="flex-1" />
-            <button type="submit" disabled={uploading} className="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:opacity-50">
-              {uploading ? 'Uploading...' : 'Upload'}
-            </button>
+        <p className="mb-6 text-gray-700 dark:text-gray-300">
+          Manage your business files and view your public chat page. Upload any files that Claude can read directly.
+        </p>
+        
+        <div className="w-full max-w-4xl bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          {/* File Upload Section */}
+          <h3 className="text-lg font-semibold mb-4">Upload Business Files</h3>
+          <form onSubmit={handleFileUpload} className="mb-6">
+            <div className="flex gap-2 mb-2 items-center">
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                accept={supportedFormats.join(',')}
+                className="flex-1 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer" 
+              />
+              <button 
+                type="submit" 
+                disabled={uploading} 
+                className="px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Supported: {supportedFormats.join(', ')}
+            </p>
           </form>
-          {error && <div className="text-red-500 mb-2">{error}</div>}
-          <ul className="mb-4 list-disc list-inside text-gray-700 dark:text-gray-300">
-            {uploadedFiles.length === 0 && <li className="italic text-gray-400">No documents uploaded yet.</li>}
-            {uploadedFiles.map((file, i) => (
-              <li key={i}>{file}</li>
-            ))}
-          </ul>
-          <h3 className="text-lg font-semibold mb-2 mt-6">Your Public Chat Page</h3>
-          <div className="mb-2">
-            <a
-              href={`/business/${user?.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 underline font-mono break-all hover:text-blue-800 dark:hover:text-blue-300 transition"
-            >
-              {typeof window !== 'undefined' ? `${window.location.origin}/business/${user?.id}` : `/business/${user?.id}`}
-            </a>
-            <button
-              type="button"
-              className="ml-2 px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  navigator.clipboard.writeText(`${window.location.origin}/business/${user?.id}`);
-                }
-              }}
-            >
-              Copy
-            </button>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          {/* Files List Section */}
+          <h3 className="text-lg font-semibold mb-4">Your Business Files ({uploadedFiles.length})</h3>
+          
+          {uploadedFiles.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <p className="mb-2">No files uploaded yet.</p>
+              <p className="text-sm">Upload pricing lists, service menus, policies, or any business documents to get started.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {uploadedFiles.map((file, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {file.name}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatFileSize(file.size)} • Uploaded {formatDate(file.uploadDate)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFile(file.name)}
+                    disabled={deletingFile === file.name}
+                    className="ml-3 px-3 py-1 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deletingFile === file.name ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Public Chat Page Section */}
+          <h3 className="text-lg font-semibold mb-4 mt-8">Your Public Chat Page</h3>
+          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Share this link with your customers to let them get quotes using your uploaded files:
+            </p>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/business/${user?.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 underline font-mono break-all hover:text-blue-800 dark:hover:text-blue-300 transition flex-1"
+              >
+                {typeof window !== 'undefined' ? `${window.location.origin}/business/${user?.id}` : `/business/${user?.id}`}
+              </a>
+              <button
+                type="button"
+                className="px-3 py-1 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    navigator.clipboard.writeText(`${window.location.origin}/business/${user?.id}`);
+                  }
+                }}
+              >
+                Copy
+              </button>
+            </div>
           </div>
         </div>
       </SignedIn>
+      
       <SignedOut>
         <div className="flex flex-col items-center">
           <p className="mb-4 text-lg">Please sign in to access your dashboard.</p>

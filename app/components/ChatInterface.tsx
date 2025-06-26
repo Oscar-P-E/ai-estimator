@@ -155,7 +155,8 @@ export default function ChatInterface() {
 
     // Add user message
     const userMessage: Message = { role: 'user', content: messageText };
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     resetTranscript();
     setUsedVoiceInput(false);
@@ -167,6 +168,7 @@ export default function ChatInterface() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: messageText,
+          conversationHistory: updatedMessages, // Include full conversation history
           businessId: businessId,
           isVoiceInput: wasVoiceInput
         })
