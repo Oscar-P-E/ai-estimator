@@ -37,20 +37,21 @@
     </overview>
 
     <ai_context_system>
-      <description>Simplified file-based AI context system where files are read directly by AI during conversations</description>
+      <description>Simplified file-based AI context system where files are stored raw and read directly by Claude during conversations</description>
       <file_storage>
         <structure>business_files/{business_id}/{filename}</structure>
-        <supported_formats>Excel, CSV, PDF, Word, Text</supported_formats>
-        <processing>None - files read raw by AI during chat</processing>
+        <supported_formats>Any text-readable format: .txt, .md, .csv, .json, .xml, .pdf, .docx, .xlsx, .py, .js, .ts, .html, .css, images (.png, .jpg, .gif, .webp)</supported_formats>
+        <processing>None - files stored as-is, Claude reads/interprets them directly during chat</processing>
       </file_storage>
       <quote_persistence>
         <structure>user_quotes/{business_id}/{user_id}/{session_id}_{timestamp}.xml</structure>
         <triggers>When logged-in user receives quote from AI</triggers>
         <content>Full conversation context + generated quote</content>
+        <status>Deferred to Phase 1 for demo simplicity</status>
       </quote_persistence>
       <context_loading>
         <method>All business files loaded as context for each AI request</method>
-        <isolation>Users only access files for their business context</isolation>
+        <isolation>Users only access files for their business context (Clerk user ID as business ID)</isolation>
       </context_loading>
     </ai_context_system>
 
@@ -265,20 +266,23 @@
 
   <implementation_phases>
     <phase number="0" name="Demo Deployment" priority="IMMEDIATE">
-      <description>Get current functionality online as a working demo for validation and customer presentations</description>
+      <description>Quick demo polish with simplified file system - get a reliable demo ready for customer presentations</description>
       <tasks>
         <task status="COMPLETED">✅ Integrate TTS service (ElevenLabs) for voice responses</task>
-        <task status="IN_PROGRESS">🔄 Polish UI/UX for demo presentation</task>
         <task status="COMPLETED">✅ Deploy to Vercel with environment variables</task>
-        <task status="PENDING">⏳ Implement simplified AI context system (remove document processing)</task>
-        <task status="PENDING">⏳ Add quote persistence for logged-in users</task>
-        <task status="PENDING">⏳ Test end-to-end functionality with new AI context system</task>
+        <task status="PENDING">⏳ Remove complex document processing logic</task>
+        <task status="PENDING">⏳ Implement simple file storage (store files as-is)</task>
+        <task status="PENDING">⏳ Update chat API to load all business files as Claude context</task>
+        <task status="PENDING">⏳ Add basic file management (list, delete files)</task>
+        <task status="PENDING">⏳ Polish UI/UX for demo presentation</task>
+        <task status="PENDING">⏳ Add basic business file isolation</task>
+        <task status="PENDING">⏳ Test end-to-end functionality with simplified system</task>
         <task status="PENDING">⏳ Create demo script and test scenarios</task>
       </tasks>
-      <estimated_time>1-2 weeks</estimated_time>
+      <estimated_time>3-4 days</estimated_time>
       <progress>
-        <completed_tasks>2/7</completed_tasks>
-        <completion_percentage>29%</completion_percentage>
+        <completed_tasks>2/8</completed_tasks>
+        <completion_percentage>25%</completion_percentage>
         <last_update>2025-01-03</last_update>
         <notes>
           - ✅ ElevenLabs TTS integration completed with full voice conversation loop
@@ -286,32 +290,35 @@
           - ✅ Voice UX improvements: auto-send after recording, proper microphone management
           - ✅ End-to-end voice testing successful: speak → transcribe → AI response → TTS playback
           - ✅ Vercel deployment completed with all environment variables configured
-          - 🔄 UI/UX polish in progress for demo presentation
-          - ⏳ Need to implement simplified AI context system (remove complex document processing)
-          - ⏳ Need to add quote persistence for logged-in users
-          - ⏳ Full end-to-end testing required after AI context system changes
+          - 🎯 PLAN UPDATED: Option C+ approach - simplified file system with broader format support
+          - ⏳ Need to remove complex document processing and implement simple file storage
+          - ⏳ Quote persistence deferred to Phase 1 for demo simplicity
+          - ⏳ UI/UX polish and basic file isolation needed
+          - ⏳ Full end-to-end testing required after simplified system implementation
         </notes>
       </progress>
       <success_criteria>
         <criterion status="COMPLETED">✅ Site is accessible online with reliable hosting</criterion>
         <criterion status="COMPLETED">✅ Public users can chat via text and voice</criterion>
         <criterion status="COMPLETED">✅ AI responds with voice when user used voice input</criterion>
-        <criterion status="PENDING">⏳ Admin can upload files and AI uses them as context</criterion>
-        <criterion status="PENDING">⏳ Logged-in users get quotes saved for future reference</criterion>
-        <criterion status="PENDING">⏳ AI can interpret multiple file formats without pre-processing</criterion>
+        <criterion status="PENDING">⏳ Admin can upload files (any Claude-readable format) and AI uses them as context</criterion>
+        <criterion status="PENDING">⏳ Simple file management (list, delete) for business owners</criterion>
+        <criterion status="PENDING">⏳ Basic business file isolation (using Clerk user ID)</criterion>
+        <criterion status="PENDING">⏳ Polished UI/UX suitable for customer demos</criterion>
+        <criterion status="DEFERRED">📋 Quote persistence (moved to Phase 1)</criterion>
       </success_criteria>
     </phase>
 
-    <phase number="1" name="Enhanced Document Processing" priority="HIGH">
-      <description>Improve document handling based on demo feedback and real-world usage</description>
+    <phase number="1" name="Enhanced Demo Features" priority="HIGH">
+      <description>Add missing features for a complete demo based on user feedback</description>
       <tasks>
-        <task>Add support for PDF and Word document formats</task>
-        <task>Implement AI-powered document analysis for flexible schemas</task>
-        <task>Create dynamic pricing data extraction</task>
-        <task>Add manual data entry interface as fallback</task>
-        <task>Improve error handling and user feedback</task>
+        <task>Implement quote persistence system for logged-in users</task>
+        <task>Add quote history and retrieval functionality</task>
+        <task>Improve file management interface</task>
+        <task>Add error handling and user feedback improvements</task>
+        <task>Implement session management for quote tracking</task>
       </tasks>
-      <estimated_time>2-3 weeks</estimated_time>
+      <estimated_time>1-2 weeks</estimated_time>
     </phase>
 
     <phase number="2" name="Multi-Business Support" priority="HIGH">
