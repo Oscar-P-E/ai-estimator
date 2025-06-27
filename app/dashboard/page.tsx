@@ -15,10 +15,23 @@ export default function DashboardPage() {
   const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
 
-  // Fetch uploaded files for the user
+  // Get business ID and fetch files
   useEffect(() => {
     if (!user) return;
+    
+    const getBusinessId = async () => {
+      try {
+        const response = await fetch('/api/business-id');
+        const data = await response.json();
+        setBusinessId(data.businessId);
+      } catch (error) {
+        console.error('Error getting business ID:', error);
+      }
+    };
+    
+    getBusinessId();
     fetchFiles();
   }, [user]);
 
@@ -186,32 +199,34 @@ export default function DashboardPage() {
           )}
 
           {/* Public Chat Page Section */}
-          <h3 className="text-lg font-semibold mb-4 mt-8">Your Public Chat Page</h3>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Your Public Quote Page</h3>
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Share this link with your customers to let them get quotes using your uploaded files:
+              Share this link with your customers to let them get instant quotes using your uploaded files:
             </p>
             <div className="flex items-center gap-2">
-              <a
-                href={`/business/${user?.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 underline font-mono break-all hover:text-blue-800 dark:hover:text-blue-300 transition flex-1"
-              >
-                {typeof window !== 'undefined' ? `${window.location.origin}/business/${user?.id}` : `/business/${user?.id}`}
-              </a>
-              <button
-                type="button"
-                className="px-3 py-1 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    navigator.clipboard.writeText(`${window.location.origin}/business/${user?.id}`);
-                  }
-                }}
-              >
-                Copy
-              </button>
+              <div className="flex-1 flex items-center gap-2">
+                <code className="flex-1 p-2 rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm font-mono text-gray-700 dark:text-gray-300">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/business/quote-page
+                </code>
+                <button
+                  onClick={() => {
+                    if (businessId) {
+                      const url = `${window.location.origin}/business/${businessId}`;
+                      navigator.clipboard.writeText(url);
+                    }
+                  }}
+                  disabled={!businessId}
+                  className="px-3 py-2 rounded bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title="Copy your actual quote page link"
+                >
+                  {businessId ? 'Copy Link' : 'Loading...'}
+                </button>
+              </div>
             </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              This is your personalized quote page where customers can chat with your AI assistant.
+            </p>
           </div>
         </div>
       </SignedIn>

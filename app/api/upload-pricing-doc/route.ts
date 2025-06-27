@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import path from 'path';
 import { mkdir, writeFile, readdir, unlink, stat } from 'fs/promises';
+import { getBusinessId } from '../../utils/businessId';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const businessId = user.id; // Using Clerk user ID as business ID for Phase 0
+    const businessId = await getBusinessId(user.id); // Get unique business ID
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const businessId = user.id;
+    const businessId = await getBusinessId(user.id);
     const { searchParams } = new URL(request.url);
     
     if (searchParams.get('list') !== '1') {
@@ -103,7 +104,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const businessId = user.id;
+    const businessId = await getBusinessId(user.id);
     const { fileName } = await request.json();
     
     if (!fileName) {

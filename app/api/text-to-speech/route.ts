@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ElevenLabs API call
+    // ElevenLabs API call optimized for speed
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM`, {
       method: 'POST',
       headers: {
@@ -30,11 +30,14 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         text: text,
-        model_id: 'eleven_monolingual_v1',
+        model_id: 'eleven_turbo_v2_5', // Faster model
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
+          stability: 0.4, // Slightly lower for speed
+          similarity_boost: 0.4, // Slightly lower for speed
+          style: 0.0, // Disable style for speed
+          use_speaker_boost: false // Disable for speed
         },
+        optimize_streaming_latency: 4, // Maximum optimization for speed
       }),
     });
 
