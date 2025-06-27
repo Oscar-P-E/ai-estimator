@@ -5,12 +5,12 @@
     <version>2.0</version>
     <description>A SaaS platform that provides embeddable AI-powered estimators for businesses, integrated into custom websites</description>
     <created_date>2025-06-21</created_date>
-    <last_updated>2025-06-26</last_updated>
-    <current_phase>Phase 0: Demo Ready (IN PROGRESS - UI/UX improvements needed)</current_phase>
+    <last_updated>2025-12-26</last_updated>
+    <current_phase>Phase 0: Demo Ready (COMPLETED - Ready for customer demos!)</current_phase>
   </project>
 
   <current_state>
-    <phase>Phase 0: Demo Ready (IN PROGRESS - UI/UX improvements needed)</phase>
+    <phase>Phase 0: Demo Ready (COMPLETED - Ready for customer demos!)</phase>
     <working_features>
       <feature>✅ Clerk authentication for business owners and users</feature>
       <feature>✅ Simplified file system - any Claude-readable format upload (.txt, .md, .csv, .json, .xml, .pdf, .docx, .xlsx, .py, .js, .ts, .html, .css, .png, .jpg, .gif, .webp)</feature>
@@ -24,8 +24,8 @@
       <feature>✅ Enhanced dashboard for business file management</feature>
       <feature>✅ Animated voice input visualization</feature>
       <feature>✅ Complete voice conversation loop (STT → AI → TTS)</feature>
-      <feature>✅ Business file isolation - users only access their own files (using Clerk user ID as business ID)</feature>
-      <feature>🔄 UI/UX improvements in progress - basic functionality complete, design polish ongoing</feature>
+      <feature>✅ Business file isolation - users only access their own files (using secure unique business IDs)</feature>
+      <feature>✅ UI/UX improvements completed - professional demo-ready appearance with all enhancements</feature>
       <feature>✅ Clean build and deployment ready</feature>
     </working_features>
     
@@ -65,8 +65,30 @@
       </quote_persistence>
       <context_loading>
         <method>All business files loaded as context for each AI request</method>
-        <isolation>Users only access files for their business context (Clerk user ID as business ID)</isolation>
+        <isolation>Users only access files for their business context (secure unique business IDs mapped to Clerk user IDs)</isolation>
       </context_loading>
+      <currency_handling>
+        <default_currency>AUD (Australian Dollars)</default_currency>
+        <detection_method>AI analyzes business documents for currency context and explicit declarations</detection_method>
+        <ambiguity_resolution>Businesses advised to include explicit currency statements like "prices in USD" in their documents</ambiguity_resolution>
+        <priority_order>
+          <priority>1. Explicit currency declarations in documents</priority>
+          <priority>2. Currency context clues from document content</priority>
+          <priority>3. Default to AUD if no clear indication</priority>
+        </priority_order>
+      </currency_handling>
+      <security_architecture>
+        <business_id_system>
+          <description>Secure unique business ID generation system that maps to Clerk user IDs</description>
+          <id_format>biz_{timestamp}_{random_hex}</id_format>
+          <mapping_storage>business_files/business-id-mapping.json</mapping_storage>
+          <benefits>
+            <benefit>No exposure of Clerk user IDs in URLs or client-side code</benefit>
+            <benefit>URL-friendly business identifiers</benefit>
+            <benefit>Maintains security while providing clean public interfaces</benefit>
+          </benefits>
+        </business_id_system>
+      </security_architecture>
     </ai_context_system>
 
     <data_models>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import path from 'path';
 import { readdir, readFile } from 'fs/promises';
+import { getClerkUserId } from '../../utils/businessId';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -32,8 +33,14 @@ async function loadBusinessFiles(businessId?: string): Promise<string> {
       }
     }
 
-    // Load all files for the specific business
-    const businessDir = path.join(process.cwd(), 'business_files', businessId);
+    // Get the actual user ID from business ID
+    const clerkUserId = await getClerkUserId(businessId);
+    if (!clerkUserId) {
+      return 'Business not found.';
+    }
+
+    // Load all files for the specific business using Clerk user ID for file system
+    const businessDir = path.join(process.cwd(), 'business_files', clerkUserId);
     let businessContext = '';
     
     try {
@@ -95,14 +102,23 @@ Your role:
 4. Explain the breakdown of costs clearly
 5. Be helpful and professional
 
+CURRENCY HANDLING:
+- Default currency: Australian Dollars (AUD)
+- Analyze the business files for explicit currency declarations (e.g., "prices in USD", "costs in GBP", "all amounts in EUR")
+- Look for context clues about currency from the business files
+- Priority order: 1) Explicit currency statements in files, 2) Currency context from file content, 3) Default to AUD
+- When providing quotes, always specify the currency clearly (e.g., "$150 AUD" or "$150 USD")
+- If currency is ambiguous, ask for clarification or state your assumption
+
 Guidelines:
 - Always base quotes on the actual information provided in the business files
 - Ask for specifics (quantities, dimensions, materials, etc.) when needed
-- Provide itemized breakdowns when giving quotes
+- Provide itemized breakdowns when giving quotes with clear currency indication
 - If something isn't covered in the files, let them know you'll need to check with the business
 - Be conversational and helpful, not robotic
 - If images are referenced, you can describe what you would expect to see or ask for clarification
 - Maintain conversation context and refer back to previous messages as needed
+- Format responses with markdown for better readability (lists, bold text, etc.)
 
 Respond helpfully and professionally. If this is their first message, welcome them and ask what kind of project or service they're looking for based on what you see in the business files.`;
 
@@ -115,8 +131,8 @@ Respond helpfully and professionally. If this is their first message, welcome th
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1000,
-      temperature: 0.7,
+      max_tokens: 800, // Slightly reduced for faster response
+      temperature: 0.6, // Slightly lower for more focused responses
       system: systemPrompt,
       messages: anthropicMessages,
     });

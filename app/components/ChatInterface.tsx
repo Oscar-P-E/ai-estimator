@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import TextareaAutosize from 'react-textarea-autosize';
+import ReactMarkdown from 'react-markdown';
 import LottieBlob from './LottieBlob';
 
 interface Message {
@@ -218,6 +219,19 @@ export default function ChatInterface() {
     await sendMessage(userInput, wasVoiceInput);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim() && !isLoading && !isRecording) {
+        // Create a synthetic form event
+        const formEvent = {
+          preventDefault: () => {},
+        } as React.FormEvent;
+        handleSubmit(formEvent);
+      }
+    }
+  };
+
   const startRecording = async () => {
     try {
       // Clean up any existing recording first
@@ -365,7 +379,27 @@ export default function ChatInterface() {
             }
             style={{ wordBreak: 'break-word' }}
           >
-            {message.content}
+            {message.role === 'assistant' ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown 
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    ul: ({ children }) => <ul className="mb-2 pl-4 list-disc">{children}</ul>,
+                    ol: ({ children }) => <ol className="mb-2 pl-4 list-decimal">{children}</ol>,
+                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    em: ({ children }) => <em className="italic">{children}</em>,
+                    code: ({ children }) => <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm">{children}</code>,
+                    h3: ({ children }) => <h3 className="font-semibold text-lg mb-2">{children}</h3>,
+                    h4: ({ children }) => <h4 className="font-semibold text-base mb-1">{children}</h4>,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              message.content
+            )}
           </div>
         ))}
         {isLoading && (
@@ -388,10 +422,11 @@ export default function ChatInterface() {
           ref={textareaCallbackRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           minRows={1}
           maxRows={6}
           className="flex-1 resize-none p-3 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all shadow-inner min-h-[44px] max-h-[160px] text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
-          placeholder="Type or speak&hellip;"
+          placeholder="Type or speak…"
         />
         <button
           type="button"
