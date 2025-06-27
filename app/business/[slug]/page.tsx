@@ -8,7 +8,7 @@ interface BusinessPageProps {
 export default async function BusinessChatPage({ params }: BusinessPageProps) {
   const { slug } = await params;
 
-  // In a real app, you'd fetch business info by slug here
+  // Phase 0: Using slug directly for now. In Phase 1, we'll fetch business info from database by slug
   if (!slug) return notFound();
 
   return (
