@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -107,48 +107,52 @@ export default function ChatInterface() {
     }
   };
 
-  const cleanupAudioResources = useCallback((keepAnalyzer = false) => {
+  // Cleanup function for audio resources
+  const cleanupAudioResources = (keepAnalyzer = false) => {
     // Stop media recorder
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
     }
-
+    
     // Stop speech recognition
     if (listening) {
       SpeechRecognition.stopListening();
     }
-
-    // Cancel animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-
-    // Close audio stream
-    if (audioStream) {
+    
+    // Stop and cleanup audio stream tracks
+    if (audioStream && !keepAnalyzer) {
       audioStream.getTracks().forEach(track => track.stop());
       setAudioStream(null);
     }
 
-    // Clear analyzer reference unless keeping it
-    if (!keepAnalyzer && analyserRef.current) {
-      analyserRef.current = null;
+    // Cancel animation frame and disconnect analyzer only if not keeping it
+    if (!keepAnalyzer) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      if (analyserRef.current) {
+        analyserRef.current.disconnect();
+      }
+      
+      setAudioLevel(0);
     }
 
-    // Reset states
-    if (!keepAnalyzer) {
-      setIsRecording(false);
-      setIsTranscribing(false);
-      setAudioLevel(0);
+    setIsRecording(false);
+    // Only hide blob when not transcribing
+    if (!isTranscribing) {
       setShowBlob(false);
     }
-  }, [mediaRecorder, listening, audioStream, animationFrameRef, analyserRef]);
+  };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupAudioResources();
     };
-  }, [cleanupAudioResources]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Shared function to send message (used by both form submit and auto-send)
   const sendMessage = async (messageText: string, wasVoiceInput: boolean) => {
@@ -219,18 +223,7 @@ export default function ChatInterface() {
     await sendMessage(userInput, wasVoiceInput);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (input.trim() && !isLoading && !isRecording) {
-        // Create a synthetic form event
-        const formEvent = {
-          preventDefault: () => {},
-        } as React.FormEvent;
-        handleSubmit(formEvent);
-      }
-    }
-  };
+
 
   const startRecording = async () => {
     try {
@@ -307,10 +300,9 @@ export default function ChatInterface() {
             setUsedVoiceInput(true);
             setTranscriptionMessage('');
             
-            // Auto-send the message immediately after transcription
+            // Don't auto-send - let user manually send the message
             cleanupAudioResources();
             setShowBlob(false);
-            await sendMessage(data.transcription, true);
           } else if (data.error) {
             if (data.error === 'No transcription generated' || 
                 (data.details && data.details.includes('no transcript'))) {
@@ -380,22 +372,8 @@ export default function ChatInterface() {
             style={{ wordBreak: 'break-word' }}
           >
             {message.role === 'assistant' ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown 
-                  components={{
-                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                    ul: ({ children }) => <ul className="mb-2 pl-4 list-disc">{children}</ul>,
-                    ol: ({ children }) => <ol className="mb-2 pl-4 list-decimal">{children}</ol>,
-                    li: ({ children }) => <li className="mb-1">{children}</li>,
-                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                    em: ({ children }) => <em className="italic">{children}</em>,
-                    code: ({ children }) => <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-sm">{children}</code>,
-                    h3: ({ children }) => <h3 className="font-semibold text-lg mb-2">{children}</h3>,
-                    h4: ({ children }) => <h4 className="font-semibold text-base mb-1">{children}</h4>,
-                  }}
-                >
-                  {message.content}
-                </ReactMarkdown>
+              <div className="prose">
+                <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
             ) : (
               message.content
@@ -422,11 +400,10 @@ export default function ChatInterface() {
           ref={textareaCallbackRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
           minRows={1}
           maxRows={6}
           className="flex-1 resize-none p-3 rounded-2xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border-none focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 transition-all shadow-inner min-h-[44px] max-h-[160px] text-base leading-relaxed placeholder-gray-400 dark:placeholder-gray-500 overflow-y-auto"
-          placeholder="Type or speak…"
+          placeholder="Type or speak&hellip;"
         />
         <button
           type="button"
@@ -456,11 +433,9 @@ export default function ChatInterface() {
           disabled={isRecording || isLoading}
           className={`p-3 rounded-full shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 ml-2 
             ${isRecording || isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 dark:bg-blue-700 hover:bg-blue-600 dark:hover:bg-blue-800'} text-white`}
-          title={isRecording ? "Recording will auto-send" : "Send message"}
+          title="Send message"
         >
-          <span className="font-semibold">
-            {isRecording ? 'Auto-send' : 'Send'}
-          </span>
+          <span className="font-semibold">Send</span>
         </button>
       </form>
       {transcriptionMessage && (
