@@ -207,7 +207,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <div className="flex-1 flex items-center gap-2">
                 <code className="flex-1 p-2 rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm font-mono text-gray-700 dark:text-gray-300">
-                  {typeof window !== 'undefined' ? window.location.origin : ''}/business/quote-page
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/business/{businessId ? `${businessId.slice(0, 8)}****${businessId.slice(-4)}` : 'biz_****_****'}
                 </code>
                 <button
                   onClick={() => {

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import path from 'path';
 import { readdir, readFile } from 'fs/promises';
-import { getClerkUserId } from '../../utils/businessId';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -33,14 +32,8 @@ async function loadBusinessFiles(businessId?: string): Promise<string> {
       }
     }
 
-    // Get the actual user ID from business ID
-    const clerkUserId = await getClerkUserId(businessId);
-    if (!clerkUserId) {
-      return 'Business not found.';
-    }
-
-    // Load all files for the specific business using Clerk user ID for file system
-    const businessDir = path.join(process.cwd(), 'business_files', clerkUserId);
+    // Load all files for the specific business using business ID directly
+    const businessDir = path.join(process.cwd(), 'business_files', businessId);
     let businessContext = '';
     
     try {

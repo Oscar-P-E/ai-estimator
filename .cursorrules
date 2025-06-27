@@ -78,4 +78,19 @@
     <guideline>Maintain clean, readable code with proper TypeScript types</guideline>
     <guideline>Let the XML spec be the single source of truth for project status and tasks</guideline>
   </development-guidelines>
+
+  <testing-requirements>
+    <critical-rule>NEVER declare a feature "successfully implemented", "completed", "demo ready", or "working" until it has been tested by a human and confirmed functional</critical-rule>
+    <process>
+      <step>1. Implement feature with clean build</step>
+      <step>2. Mark as "IMPLEMENTATION COMPLETE - TESTING REQUIRED"</step>
+      <step>3. Provide comprehensive testing checklist for human verification</step>
+      <step>4. Only after human confirms testing passes can status be updated to "COMPLETED"</step>
+    </process>
+    <rationale>AI cannot verify real-world functionality, user experience, performance, or catch integration bugs that only surface during actual usage</rationale>
+    <examples>
+      <example>❌ BAD: "Phase 0 Demo Ready - COMPLETED"</example>
+      <example>✅ GOOD: "Phase 0 Implementation Complete - HUMAN TESTING REQUIRED"</example>
+    </examples>
+  </testing-requirements>
 </cursor-rules> 
