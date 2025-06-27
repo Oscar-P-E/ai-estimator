@@ -38,7 +38,7 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 | **Database** | Planned: PostgreSQL with Prisma |
 | **Deployment** | Vercel |
 
-## 📋 Current Status (Phase 0: Demo Ready)
+## 📋 Current Status (Phase 0: Demo Ready - IN PROGRESS)
 
 **✅ Working Features:**
 - ✅ **Business owner authentication and dashboard**
@@ -50,8 +50,13 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 - ✅ **Complete voice conversation loop** (STT → AI → TTS)
 - ✅ **Business-specific chat pages** (`/business/[business_id]`)
 - ✅ **Business file isolation** - users only access their own files (using Clerk user ID)
-- ✅ **Polished UI/UX** suitable for demo presentations
+- ✅ **System prompt externalized** for easier maintenance
+- ✅ **Markdown rendering** for AI responses with proper styling
+- ✅ **Voice UX improvements** - stop button auto-sends transcribed message
 - ✅ **Clean build and deployment ready**
+
+**🔧 Still In Progress:**
+- 🔄 **UI/UX polish** - core functionality complete, design improvements needed for demo readiness
 
 **🚧 Planned for Phase 1:**
 - 🔄 **Quote persistence for logged-in users**
@@ -119,5 +124,5 @@ A SaaS platform that provides businesses with intelligent quoting systems that c
 
 ---
 
-**Phase 0: Demo Ready! 🎉 Ready to revolutionise how businesses provide quotes online! 🚀**
+**Phase 0: Demo Ready - IN PROGRESS 🔧 Core functionality complete, UI/UX improvements needed for demo readiness! 🚀**
 

@@ -86,6 +86,7 @@ export default function ChatInterface() {
   // Function to play audio response
   const playAudioResponse = (audioBase64: string) => {
     try {
+      console.log('Attempting to play audio, base64 length:', audioBase64.length);
       // Convert base64 to blob
       const binaryString = atob(audioBase64);
       const bytes = new Uint8Array(binaryString.length);
@@ -97,11 +98,20 @@ export default function ChatInterface() {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       
+      audio.onloadstart = () => console.log('Audio loading started');
+      audio.oncanplay = () => console.log('Audio can play');
+      audio.onplay = () => console.log('Audio started playing');
       audio.onended = () => {
+        console.log('Audio finished playing');
         URL.revokeObjectURL(audioUrl);
       };
+      audio.onerror = (e) => console.error('Audio error:', e);
       
-      audio.play().catch(console.error);
+      audio.play().then(() => {
+        console.log('Audio play() succeeded');
+      }).catch((error) => {
+        console.error('Audio play() failed:', error);
+      });
     } catch (error) {
       console.error('Error playing audio response:', error);
     }
@@ -192,9 +202,12 @@ export default function ChatInterface() {
       setMessages(prev => [...prev, assistantMessage]);
       
       // Play audio response if available and user used voice input
+      console.log('TTS Debug - audioResponse:', !!data.audioResponse, 'wasVoiceInput:', wasVoiceInput);
       if (data.audioResponse && wasVoiceInput) {
         console.log('Playing TTS audio response...');
         playAudioResponse(data.audioResponse);
+      } else {
+        console.log('TTS not triggered - audioResponse:', !!data.audioResponse, 'wasVoiceInput:', wasVoiceInput);
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -300,9 +313,12 @@ export default function ChatInterface() {
             setUsedVoiceInput(true);
             setTranscriptionMessage('');
             
-            // Don't auto-send - let user manually send the message
+            // Auto-send the message when stop button is used
             cleanupAudioResources();
             setShowBlob(false);
+            
+            // Send the transcribed message automatically
+            await sendMessage(data.transcription, true);
           } else if (data.error) {
             if (data.error === 'No transcription generated' || 
                 (data.details && data.details.includes('no transcript'))) {
