@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import path from 'path';
-import { readdir, readFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
+import { list } from '@vercel/blob';
 import { systemPrompt } from '../../utils/systemPrompt';
 
 const anthropic = new Anthropic({
@@ -33,22 +34,36 @@ async function loadBusinessFiles(businessId?: string): Promise<string> {
       }
     }
 
-    // Load all files for the specific business using business ID directly
-    const businessDir = path.join(process.cwd(), 'business_files', businessId);
+    // Check if Vercel Blob is properly configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN not found - falling back to sample');
+      try {
+        const samplePath = path.join(process.cwd(), 'sample-pricing.csv');
+        const sampleContent = await readFile(samplePath, 'utf-8');
+        return `SAMPLE BUSINESS PRICING DATA:\n\n${sampleContent}`;
+      } catch {
+        return 'No business files available - Blob storage not configured.';
+      }
+    }
+
+    // Load all files for the specific business from Vercel Blob
     let businessContext = '';
     
     try {
-      const files = await readdir(businessDir);
+      // List files from Vercel Blob
+      const { blobs } = await list({
+        prefix: `${businessId}/`,
+      });
       
-      if (files.length === 0) {
+      if (blobs.length === 0) {
         return 'No business files uploaded yet.';
       }
 
-      businessContext += `BUSINESS FILES (${files.length} files):\n\n`;
+      businessContext += `BUSINESS FILES (${blobs.length} files):\n\n`;
       
       // Read each file and add to context
-      for (const fileName of files) {
-        const filePath = path.join(businessDir, fileName);
+      for (const blob of blobs) {
+        const fileName = blob.pathname.replace(`${businessId}/`, '');
         const fileExtension = path.extname(fileName).toLowerCase();
         
         try {
@@ -56,7 +71,13 @@ async function loadBusinessFiles(businessId?: string): Promise<string> {
           
           // Handle different file types that Claude can read directly
           if (['.txt', '.md', '.csv', '.json', '.xml', '.py', '.js', '.ts', '.html', '.css'].includes(fileExtension)) {
-            fileContent = await readFile(filePath, 'utf-8');
+            // Fetch text content from blob URL
+            const response = await fetch(blob.url);
+            if (response.ok) {
+              fileContent = await response.text();
+            } else {
+              fileContent = `[Error fetching file content]`;
+            }
           } else if (['.pdf', '.docx', '.xlsx', '.xls'].includes(fileExtension)) {
             // For demo purposes, note these files exist but would need proper processing
             fileContent = `[${fileExtension.toUpperCase()} FILE: ${fileName} - Claude can interpret this file type directly]`;
@@ -74,8 +95,9 @@ async function loadBusinessFiles(businessId?: string): Promise<string> {
       }
       
       return businessContext;
-    } catch {
-      return 'No business files uploaded yet.';
+    } catch (blobError) {
+      console.error('Vercel Blob list error:', blobError);
+      return 'Error loading business files from storage.';
     }
   } catch (error) {
     console.error('Error loading business files:', error);
