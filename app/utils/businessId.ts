@@ -17,6 +17,7 @@ export async function getBusinessId(clerkUserId: string): Promise<string> {
 }
 
 // Get Clerk user ID from business ID (reverse lookup)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function getClerkUserId(businessId: string): Promise<string | null> {
   // Since this is deterministic, we can't reverse it without the original Clerk ID
   // This would require a database lookup in a real implementation
