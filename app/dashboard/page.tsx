@@ -65,10 +65,9 @@ export default function DashboardPage() {
     });
   };
 
-  const handleFileUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
-    const file = fileInputRef.current?.files?.[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     
     setUploading(true);
@@ -139,26 +138,29 @@ export default function DashboardPage() {
         <div className="w-full max-w-4xl bg-white/80 dark:bg-gray-900/80 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
           {/* File Upload Section */}
           <h3 className="text-lg font-semibold mb-4">Upload Business Files</h3>
-          <form onSubmit={handleFileUpload} className="mb-6">
-            <div className="flex gap-2 mb-2 items-center">
+          <div className="mb-6">
+            <div className="relative">
               <input 
                 ref={fileInputRef} 
                 type="file" 
                 accept={supportedFormats.join(',')}
-                className="flex-1 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer" 
+                onChange={handleFileChange}
+                disabled={uploading}
+                className="w-full file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer disabled:file:bg-gray-100 disabled:file:text-gray-400 disabled:file:cursor-not-allowed" 
               />
-              <button 
-                type="submit" 
-                disabled={uploading} 
-                className="px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? 'Uploading...' : 'Upload'}
-              </button>
+              {uploading && (
+                <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 rounded-lg flex items-center justify-center">
+                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                    <span className="text-sm font-medium">Uploading...</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Supported: {supportedFormats.join(', ')}
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Select a file to automatically upload. Supported: {supportedFormats.join(', ')}
             </p>
-          </form>
+          </div>
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
