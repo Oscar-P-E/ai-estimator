@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const { user } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{current: number, total: number} | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<FileInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
@@ -67,31 +68,51 @@ export default function DashboardPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    setUploadProgress({ current: 0, total: files.length });
     
-    try {
-      const res = await fetch('/api/upload-pricing-doc', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
+    // Upload files one by one
+    let successCount = 0;
+    let failedFiles: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress({ current: i + 1, total: files.length });
+      const file = files[i];
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (data.success) {
-        await fetchFiles(); // Refresh the file list
-      } else {
-        setError(data.error || 'Upload failed');
+      try {
+        const res = await fetch('/api/upload-pricing-doc', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          successCount++;
+        } else {
+          failedFiles.push(`${file.name}: ${data.error || 'Upload failed'}`);
+        }
+      } catch {
+        failedFiles.push(`${file.name}: Upload failed`);
       }
-    } catch {
-      setError('Upload failed');
+    }
+    
+    // Show results
+    if (failedFiles.length > 0) {
+      setError(`${successCount} file(s) uploaded successfully. Failed: ${failedFiles.join(', ')}`);
+    } else if (successCount > 0) {
+      // Clear any previous errors on successful upload
+      setError(null);
     }
     
     setUploading(false);
+    setUploadProgress(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    await fetchFiles(); // Refresh the file list
   };
 
   const handleDeleteFile = async (fileName: string) => {
@@ -143,6 +164,7 @@ export default function DashboardPage() {
               <input 
                 ref={fileInputRef} 
                 type="file" 
+                multiple
                 accept={supportedFormats.join(',')}
                 onChange={handleFileChange}
                 disabled={uploading}
@@ -152,13 +174,15 @@ export default function DashboardPage() {
                 <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 rounded-lg flex items-center justify-center">
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                    <span className="text-sm font-medium">Uploading...</span>
+                    <span className="text-sm font-medium">
+                      {uploadProgress ? `Uploading ${uploadProgress.current} of ${uploadProgress.total} files...` : 'Uploading...'}
+                    </span>
                   </div>
                 </div>
               )}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Select a file to automatically upload. Supported: {supportedFormats.join(', ')}
+              Select one or multiple files to automatically upload. Supported: {supportedFormats.join(', ')}
             </p>
           </div>
 
