@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ElevenLabs API call optimized for speed
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM`, {
+    // ElevenLabs API call optimized for speed with Australian voice (Stuart)
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/HDA9tsk27wYi3uq0fPcK`, {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
