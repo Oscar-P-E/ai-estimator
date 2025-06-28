@@ -34,22 +34,43 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Upload to Vercel Blob
-    const filename = `${businessId}/${file.name}`;
-    const blob = await put(filename, file, {
-      access: 'public',
-    });
+    // Check if Vercel Blob is properly configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      return NextResponse.json({ 
+        error: 'Blob storage not configured. Please set up Vercel Blob.' 
+      }, { status: 500 });
+    }
 
-    return NextResponse.json({ 
-      success: true, 
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: fileExtension,
-      url: blob.url
-    });
+    try {
+      // Upload to Vercel Blob
+      const filename = `${businessId}/${file.name}`;
+      console.log(`Attempting to upload file: ${filename}, size: ${file.size} bytes`);
+      
+      const blob = await put(filename, file, {
+        access: 'public',
+      });
+
+      console.log(`File uploaded successfully: ${blob.url}`);
+      
+      return NextResponse.json({ 
+        success: true, 
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: fileExtension,
+        url: blob.url
+      });
+    } catch (blobError) {
+      console.error('Vercel Blob upload error:', blobError);
+      return NextResponse.json({ 
+        error: `Blob upload failed: ${blobError instanceof Error ? blobError.message : 'Unknown error'}` 
+      }, { status: 500 });
+    }
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    return NextResponse.json({ 
+      error: `Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    }, { status: 500 });
   }
 }
 
@@ -67,20 +88,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    // List files from Vercel Blob
-    const { blobs } = await list({
-      prefix: `${businessId}/`,
-    });
+    // Check if Vercel Blob is properly configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      return NextResponse.json({ files: [] }); // Return empty array if not configured
+    }
 
-    // Transform blob data to match expected format
-    const files = blobs.map(blob => ({
-      name: blob.pathname.replace(`${businessId}/`, ''),
-      size: blob.size,
-      uploadDate: blob.uploadedAt,
-      url: blob.url
-    }));
+    try {
+      // List files from Vercel Blob
+      const { blobs } = await list({
+        prefix: `${businessId}/`,
+      });
 
-    return NextResponse.json({ files });
+      // Transform blob data to match expected format
+      const files = blobs.map(blob => ({
+        name: blob.pathname.replace(`${businessId}/`, ''),
+        size: blob.size,
+        uploadDate: blob.uploadedAt,
+        url: blob.url
+      }));
+
+      return NextResponse.json({ files });
+    } catch (blobError) {
+      console.error('Vercel Blob list error:', blobError);
+      return NextResponse.json({ files: [] }); // Return empty array on error
+    }
   } catch (error) {
     console.error('List files error:', error);
     return NextResponse.json({ error: 'Failed to list files' }, { status: 500 });
@@ -101,11 +133,26 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No filename provided' }, { status: 400 });
     }
 
-    // Delete from Vercel Blob
-    const blobPath = `${businessId}/${fileName}`;
-    await del(blobPath);
+    // Check if Vercel Blob is properly configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN not found in environment variables');
+      return NextResponse.json({ 
+        error: 'Blob storage not configured. Please set up Vercel Blob.' 
+      }, { status: 500 });
+    }
 
-    return NextResponse.json({ success: true, deletedFile: fileName });
+    try {
+      // Delete from Vercel Blob
+      const blobPath = `${businessId}/${fileName}`;
+      await del(blobPath);
+
+      return NextResponse.json({ success: true, deletedFile: fileName });
+    } catch (blobError) {
+      console.error('Vercel Blob delete error:', blobError);
+      return NextResponse.json({ 
+        error: `Failed to delete file: ${blobError instanceof Error ? blobError.message : 'Unknown error'}` 
+      }, { status: 500 });
+    }
   } catch (error) {
     console.error('Delete file error:', error);
     return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });

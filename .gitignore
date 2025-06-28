@@ -54,3 +54,4 @@ next-env.d.ts
 
 # Business files and mappings (sensitive data)
 /business_files/
+.env*.local
