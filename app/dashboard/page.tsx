@@ -76,7 +76,7 @@ export default function DashboardPage() {
     
     // Upload files one by one
     let successCount = 0;
-    let failedFiles: string[] = [];
+    const failedFiles: string[] = [];
     
     for (let i = 0; i < files.length; i++) {
       setUploadProgress({ current: i + 1, total: files.length });
