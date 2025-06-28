@@ -248,6 +248,19 @@ export default function DashboardPage() {
                 >
                   {businessId ? 'Copy Link' : 'Loading...'}
                 </button>
+                <button
+                  onClick={() => {
+                    if (businessId) {
+                      const url = `${window.location.origin}/business/${businessId}`;
+                      window.open(url, '_blank');
+                    }
+                  }}
+                  disabled={!businessId}
+                  className="px-3 py-2 rounded bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  title="Visit your quote page in a new tab"
+                >
+                  {businessId ? 'Visit Link' : 'Loading...'}
+                </button>
               </div>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
