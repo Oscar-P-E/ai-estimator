@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import path from 'path';
-import { mkdir, writeFile, readdir, unlink, stat } from 'fs/promises';
+import { put, list, del } from '@vercel/blob';
 import { getBusinessId } from '../../utils/businessId';
 
 export async function POST(request: NextRequest) {
@@ -34,20 +34,18 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Create business_files directory structure
-    const businessDir = path.join(process.cwd(), 'business_files', businessId);
-    await mkdir(businessDir, { recursive: true });
-    
-    const filePath = path.join(businessDir, file.name);
-    await writeFile(filePath, buffer);
+    // Upload to Vercel Blob
+    const filename = `${businessId}/${file.name}`;
+    const blob = await put(filename, file, {
+      access: 'public',
+    });
 
     return NextResponse.json({ 
       success: true, 
       fileName: file.name,
       fileSize: file.size,
-      fileType: fileExtension
+      fileType: fileExtension,
+      url: blob.url
     });
   } catch (error) {
     console.error('Upload error:', error);
@@ -69,26 +67,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    const businessDir = path.join(process.cwd(), 'business_files', businessId);
-    let files: Array<{name: string, size: number, uploadDate: string}> = [];
-    
-    try {
-      const fileNames = await readdir(businessDir);
-      
-      // Get file stats for each file
-      for (const fileName of fileNames) {
-        const filePath = path.join(businessDir, fileName);
-        const stats = await stat(filePath);
-        files.push({
-          name: fileName,
-          size: stats.size,
-          uploadDate: stats.mtime.toISOString()
-        });
-      }
-    } catch {
-      // Directory may not exist yet
-      files = [];
-    }
+    // List files from Vercel Blob
+    const { blobs } = await list({
+      prefix: `${businessId}/`,
+    });
+
+    // Transform blob data to match expected format
+    const files = blobs.map(blob => ({
+      name: blob.pathname.replace(`${businessId}/`, ''),
+      size: blob.size,
+      uploadDate: blob.uploadedAt,
+      url: blob.url
+    }));
 
     return NextResponse.json({ files });
   } catch (error) {
@@ -111,8 +101,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No filename provided' }, { status: 400 });
     }
 
-    const filePath = path.join(process.cwd(), 'business_files', businessId, fileName);
-    await unlink(filePath);
+    // Delete from Vercel Blob
+    const blobPath = `${businessId}/${fileName}`;
+    await del(blobPath);
 
     return NextResponse.json({ success: true, deletedFile: fileName });
   } catch (error) {
