@@ -444,15 +444,17 @@ export default function ChatInterface() {
             </>
           )}
         </button>
-        <button
-          type="submit"
-          disabled={isRecording || isLoading}
-          className={`p-3 rounded-full shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 ml-2 
-            ${isRecording || isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 dark:bg-blue-700 hover:bg-blue-600 dark:hover:bg-blue-800'} text-white`}
-          title="Send message"
-        >
-          <span className="font-semibold">Send</span>
-        </button>
+        {!isRecording && (
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`p-3 rounded-full shadow-md transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-purple-500 ml-2 
+              ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 dark:bg-blue-700 hover:bg-blue-600 dark:hover:bg-blue-800'} text-white`}
+            title="Send message"
+          >
+            <span className="font-semibold">Send</span>
+          </button>
+        )}
       </form>
       {transcriptionMessage && (
         <div className="mt-2 text-sm text-red-600 dark:text-red-400 text-center animate-fade-in">
