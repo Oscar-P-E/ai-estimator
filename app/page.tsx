@@ -8,17 +8,32 @@ export default function Home() {
       <div className="w-full max-w-4xl mx-auto my-4 sm:my-6 p-4 sm:p-6 rounded-3xl shadow-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200 dark:border-gray-800">
         <header className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-3 mt-6">
-            <span className="inline-block bg-gradient-to-tr from-blue-400 to-purple-500 rounded-full p-2 shadow-lg">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="16" r="16" fill="url(#paint0_linear_1_2)"/>
-                <defs>
-                  <linearGradient id="paint0_linear_1_2" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#60A5FA"/>
-                    <stop offset="1" stopColor="#A78BFA"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </span>
+            <div className="relative">
+              <div className="w-16 h-16 bg-gradient-to-tr from-blue-500 via-purple-500 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Chat bubble base */}
+                  <path d="M28 8C28 6.89543 27.1046 6 26 6H10C8.89543 6 8 6.89543 8 8V20C8 21.1046 8.89543 22 10 22H14L18 26L22 22H26C27.1046 22 28 21.1046 28 20V8Z" fill="white" fillOpacity="0.95"/>
+                  
+                  {/* AI brain circuit pattern */}
+                  <circle cx="14" cy="12" r="2" fill="#3B82F6" fillOpacity="0.8"/>
+                  <circle cx="22" cy="12" r="2" fill="#8B5CF6" fillOpacity="0.8"/>
+                  <circle cx="18" cy="16" r="1.5" fill="#6366F1" fillOpacity="0.8"/>
+                  
+                  {/* Neural network connections */}
+                  <path d="M16 12L18 14.5M20 12L18 14.5M18 14.5L18 18" stroke="#4F46E5" strokeWidth="1.5" strokeLinecap="round" fillOpacity="0.6"/>
+                  
+                  {/* Quote/dollar symbol */}
+                  <path d="M12 18C12 18 13 17 14 17C15 17 15.5 17.5 15.5 18C15.5 18.5 15 19 14 19H13.5" stroke="#059669" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
+                  <path d="M20.5 18C20.5 18 21.5 17 22.5 17C23.5 17 24 17.5 24 18C24 18.5 23.5 19 22.5 19H22" stroke="#059669" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
+                </svg>
+              </div>
+              {/* Floating AI indicator */}
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1L7.5 4.5L11 6L7.5 7.5L6 11L4.5 7.5L1 6L4.5 4.5L6 1Z" fill="white"/>
+                </svg>
+              </div>
+            </div>
             <h1 className="text-4xl font-extrabold bg-gradient-to-tr from-blue-600 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
               AI-Powered Quoting Assistant
             </h1>
